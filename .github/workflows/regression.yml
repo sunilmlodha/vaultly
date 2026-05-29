@@ -1,0 +1,78 @@
+name: Regression — Playwright E2E
+
+# Fires automatically when Vercel marks a deployment as "success".
+# Vercel's GitHub integration posts a deployment_status event for every push.
+# The deployed URL comes directly from the event payload — no extra config needed.
+on:
+  deployment_status:
+
+jobs:
+  regression:
+    name: Playwright regression
+    # Only run when the deployment actually succeeded
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright regression suite
+        run: npm run test:regression
+        env:
+          # The live URL that Vercel just deployed to (preview or production)
+          BASE_URL: ${{ github.event.deployment_status.target_url }}
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          CI: "true"
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: tests/regression/reports/html/
+          retention-days: 30
+
+      - name: Upload Playwright results JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results-${{ github.run_number }}
+          path: tests/regression/reports/results.json
+          retention-days: 30
+
+      - name: Upload failure traces & screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures-${{ github.run_number }}
+          path: tests/regression/results/
+          retention-days: 14
+
+      - name: Post summary to job
+        if: always()
+        run: |
+          echo "## Regression Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed URL:** ${{ github.event.deployment_status.target_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f tests/regression/reports/results.json ]; then
+            PASSED=$(cat tests/regression/reports/results.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('stats',{}).get('expected',0))" 2>/dev/null || echo "?")
+            FAILED=$(cat tests/regression/reports/results.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('stats',{}).get('unexpected',0))" 2>/dev/null || echo "?")
+            echo "✅ Passed: **$PASSED** | ❌ Failed: **$FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
