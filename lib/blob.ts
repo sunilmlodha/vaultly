@@ -1,4 +1,4 @@
-import { put, del, presignUrl } from '@vercel/blob'
+import { put, del } from '@vercel/blob'
 
 export async function uploadDocument(
   filename: string,
@@ -16,7 +16,11 @@ export async function deleteDocument(url: string): Promise<void> {
   await del(url)
 }
 
-// Generate a short-lived signed URL for a private blob (expires in 1 hour)
-export async function getSignedDownloadUrl(blobUrl: string): Promise<string> {
-  return presignUrl(blobUrl, { expiresIn: 3600 })
+// Fetch a private blob server-side using the read-write token
+export async function fetchPrivateBlob(blobUrl: string): Promise<Response> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
+  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN is not set')
+  return fetch(blobUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
 }

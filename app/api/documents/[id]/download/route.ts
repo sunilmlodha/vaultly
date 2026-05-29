@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { getSignedDownloadUrl } from '@/lib/blob'
+import { fetchPrivateBlob } from '@/lib/blob'
+
+export const maxDuration = 60
 
 export async function GET(
   _req: NextRequest,
@@ -22,10 +24,22 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const { blob_url, name } = result.rows[0] as { blob_url: string; name: string }
+  const row = result.rows[0] as unknown as { blob_url: string; name: string }
 
-  const signedUrl = await getSignedDownloadUrl(blob_url)
+  // Fetch the private blob using the server-side token and stream it to the client
+  const blobRes = await fetchPrivateBlob(row.blob_url)
+  if (!blobRes.ok) {
+    return NextResponse.json({ error: 'Failed to retrieve file' }, { status: 502 })
+  }
 
-  // Redirect to the signed URL — browser will download the file directly from Blob
-  return NextResponse.redirect(signedUrl)
+  const contentType = blobRes.headers.get('content-type') || 'application/octet-stream'
+  const filename = encodeURIComponent(row.name)
+
+  return new NextResponse(blobRes.body, {
+    headers: {
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'private, no-store',
+    },
+  })
 }
