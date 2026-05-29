@@ -15,6 +15,19 @@ const LOCALE_LOADERS: Partial<Record<Locale, () => Promise<{ default: Record<str
   hi: () => import('../messages/hi.json'),
 }
 
+// Suppress next-intl errors gracefully — return the key name as fallback
+// so a missing/bad key never crashes the page.
+function onIntlError(error: unknown) {
+  // Only log in development; silently handle in production
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[i18n]', error)
+  }
+}
+
+function getMessageFallback({ namespace, key }: { namespace?: string; key: string }): string {
+  return namespace ? `${namespace}.${key}` : key
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   // Start with English so NextIntlClientProvider is ALWAYS present from first render.
   const [locale, setLocale]     = useState<Locale>('en')
@@ -23,21 +36,30 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = (localStorage.getItem('vaultly_lang') || 'en') as Locale
     if (stored === 'en' || !LOCALE_LOADERS[stored]) {
-      setLocale('en')
-      setMessages(enMessages as Record<string, unknown>)
+      // Already English — no state change needed (avoid unnecessary re-render)
       return
     }
-    setLocale(stored)
+    // Load locale messages then update BOTH locale + messages atomically.
+    // Never set locale='de' while messages are still English — that intermediate
+    // state can confuse next-intl and trigger a runtime crash.
     LOCALE_LOADERS[stored]!()
-      .then(m => setMessages(m.default))
+      .then(m => {
+        setLocale(stored)
+        setMessages(m.default as Record<string, unknown>)
+      })
       .catch(() => {
-        setLocale('en')
-        setMessages(enMessages as Record<string, unknown>)
+        // Locale file failed to load — stay on English silently
       })
   }, [])
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      timeZone="UTC"
+      onError={onIntlError}
+      getMessageFallback={getMessageFallback}
+    >
       {children}
     </NextIntlClientProvider>
   )
