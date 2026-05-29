@@ -42,3 +42,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# Test artifacts
+/tests/regression/reports/
+/tests/regression/results/
+/tests/regression/fixtures/auth-state.json
+/tests/regression/fixtures/test-doc.pdf
+/playwright-report/
+/test-results/
