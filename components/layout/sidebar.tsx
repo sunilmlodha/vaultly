@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Wallet, CreditCard, Users, RefreshCw,
-  FileText, Target, Search, LogOut, Vault, Landmark, BarChart3, Settings
+  FileText, Target, Search, LogOut, Vault, Landmark, BarChart3, Settings, TrendingUp
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -16,6 +16,7 @@ const nav = [
   { href: '/renewals', label: 'Renewals', icon: RefreshCw },
   { href: '/connections', label: 'Connected Banks', icon: Landmark },
   { href: '/spending', label: 'Spending Analytics', icon: BarChart3 },
+  { href: '/forecast', label: 'Cashflow Forecast', icon: TrendingUp },
   { href: '/documents', label: 'Documents', icon: FileText },
   { href: '/family', label: 'Family', icon: Users },
   { href: '/agent', label: 'Asset Recovery', icon: Search, highlight: true },

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { I18nProvider } from "@/components/i18n-provider";
+import { CookieBanner } from "@/components/gdpr/cookie-banner";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col">
         <SessionProvider>
           <I18nProvider>{children}</I18nProvider>
+          <CookieBanner />
         </SessionProvider>
       </body>
     </html>

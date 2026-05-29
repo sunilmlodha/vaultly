@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString()
 
   await db.execute({
-    sql: `INSERT INTO liabilities (id, user_id, household_id, name, category, balance, currency, interest_rate, monthly_payment, institution, notes, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [id, session.user.id, session.user.householdId, body.name, body.category, body.balance ?? 0, body.currency ?? 'GBP', body.interest_rate ?? null, body.monthly_payment ?? null, body.institution ?? null, body.notes ?? null, now, now],
+    sql: `INSERT INTO liabilities (id, user_id, household_id, name, category, balance, currency, interest_rate, monthly_payment, institution, notes, property_value, fixed_rate_end_date, mortgage_term_years, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [id, session.user.id, session.user.householdId, body.name, body.category, body.balance ?? 0, body.currency ?? 'GBP', body.interest_rate ?? null, body.monthly_payment ?? null, body.institution ?? null, body.notes ?? null, body.property_value ?? null, body.fixed_rate_end_date ?? null, body.mortgage_term_years ?? null, now, now],
   })
 
   const row = await db.execute({ sql: 'SELECT * FROM liabilities WHERE id = ?', args: [id] })
@@ -41,9 +41,9 @@ export async function PUT(req: NextRequest) {
   const now = new Date().toISOString()
 
   await db.execute({
-    sql: `UPDATE liabilities SET name=?, category=?, balance=?, currency=?, interest_rate=?, monthly_payment=?, institution=?, notes=?, updated_at=?
+    sql: `UPDATE liabilities SET name=?, category=?, balance=?, currency=?, interest_rate=?, monthly_payment=?, institution=?, notes=?, property_value=?, fixed_rate_end_date=?, mortgage_term_years=?, updated_at=?
           WHERE id=? AND household_id=?`,
-    args: [f.name, f.category, f.balance, f.currency, f.interest_rate ?? null, f.monthly_payment ?? null, f.institution ?? null, f.notes ?? null, now, id, session.user.householdId],
+    args: [f.name, f.category, f.balance, f.currency, f.interest_rate ?? null, f.monthly_payment ?? null, f.institution ?? null, f.notes ?? null, f.property_value ?? null, f.fixed_rate_end_date ?? null, f.mortgage_term_years ?? null, now, id, session.user.householdId],
   })
   return NextResponse.json({ success: true })
 }

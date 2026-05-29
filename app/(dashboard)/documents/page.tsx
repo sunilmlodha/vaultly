@@ -9,9 +9,17 @@ import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
-import { FileText, Plus, Trash2, Download } from 'lucide-react'
+import { FileText, Plus, Trash2, Download, Sparkles, X, ChevronDown, ChevronUp, Calendar, PoundSterling, Hash } from 'lucide-react'
+import type { DocumentAnalysis } from '@/app/api/documents/[id]/analyse/route'
 
 interface Doc { id: string; name: string; category: string; blob_url: string; file_size: number; created_at: string; notes?: string }
+
+interface AnalysisState {
+  docId: string
+  loading: boolean
+  result: DocumentAnalysis | null
+  error: string | null
+}
 
 const CATEGORIES = [
   { value: 'pension_statement', label: 'Pension Statement' },
@@ -33,6 +41,21 @@ export default function DocumentsPage() {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisState | null>(null)
+  const [expandedAnalysis, setExpandedAnalysis] = useState<string | null>(null)
+
+  const analyseDoc = async (docId: string) => {
+    setAnalysis({ docId, loading: true, result: null, error: null })
+    setExpandedAnalysis(docId)
+    try {
+      const res = await fetch(`/api/documents/${docId}/analyse`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      setAnalysis({ docId, loading: false, result: data.analysis, error: null })
+    } catch (e: unknown) {
+      setAnalysis({ docId, loading: false, result: null, error: e instanceof Error ? e.message : 'Analysis failed' })
+    }
+  }
 
   const load = useCallback(async () => {
     const res = await fetch('/api/documents')
@@ -91,30 +114,131 @@ export default function DocumentsPage() {
           </CardContent></Card>
         ) : (
           <div className="space-y-3">
-            {docs.map(d => (
+            {docs.map(d => {
+              const isAnalysing = analysis?.docId === d.id && analysis.loading
+              const docAnalysis = analysis?.docId === d.id ? analysis : null
+              const isExpanded = expandedAnalysis === d.id
+              return (
               <Card key={d.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="py-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                      <FileText size={18} className="text-slate-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-800 truncate">{d.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="default">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</Badge>
-                        <span className="text-xs text-slate-400">{fmt(d.file_size)} · {formatDate(d.created_at)}</span>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <FileText size={18} className="text-slate-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-800 truncate">{d.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="default">{CATEGORIES.find(c => c.value === d.category)?.label || d.category}</Badge>
+                          <span className="text-xs text-slate-400">{fmt(d.file_size)} · {formatDate(d.created_at)}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => isExpanded && docAnalysis?.result ? setExpandedAnalysis(null) : analyseDoc(d.id)}
+                        className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
+                        title="Analyse with AI"
+                      >
+                        <Sparkles size={14} /> {isAnalysing ? 'Analysing…' : 'AI'}
+                        {docAnalysis?.result && (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
+                      </Button>
+                      <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="sm"><Download size={14} /></Button>
+                      </a>
+                      <Button variant="ghost" size="sm" onClick={() => del(d.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="sm"><Download size={14} /></Button>
-                    </a>
-                    <Button variant="ghost" size="sm" onClick={() => del(d.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
-                  </div>
+
+                  {/* ── AI Analysis Panel ─────────────────────────────────── */}
+                  {isExpanded && docAnalysis && (
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                      {docAnalysis.loading && (
+                        <div className="flex items-center gap-2 text-sm text-indigo-600">
+                          <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                          Analysing document with AI…
+                        </div>
+                      )}
+                      {docAnalysis.error && (
+                        <div className="flex items-center gap-2 text-sm text-rose-600 bg-rose-50 rounded-xl px-3 py-2">
+                          <X size={14} />{docAnalysis.error}
+                        </div>
+                      )}
+                      {docAnalysis.result && (
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                              <Sparkles size={12} className="text-indigo-500" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-indigo-600 mb-0.5">{docAnalysis.result.document_type}</p>
+                              <p className="text-sm text-slate-700 leading-relaxed">{docAnalysis.result.summary}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {docAnalysis.result.key_dates?.length > 0 && (
+                              <div className="bg-slate-50 rounded-xl p-3">
+                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><Calendar size={11} /> Key dates</p>
+                                <div className="space-y-1">
+                                  {docAnalysis.result.key_dates.map((kd, i) => (
+                                    <div key={i} className="flex justify-between text-xs">
+                                      <span className="text-slate-600">{kd.label}</span>
+                                      <span className="font-medium text-slate-800">{kd.date}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {docAnalysis.result.key_amounts?.length > 0 && (
+                              <div className="bg-slate-50 rounded-xl p-3">
+                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><PoundSterling size={11} /> Key amounts</p>
+                                <div className="space-y-1">
+                                  {docAnalysis.result.key_amounts.map((ka, i) => (
+                                    <div key={i} className="flex justify-between text-xs">
+                                      <span className="text-slate-600">{ka.label}</span>
+                                      <span className="font-medium text-slate-800">{ka.currency || '£'}{ka.amount}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {docAnalysis.result.policy_number && (
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <Hash size={11} /> Policy/reference: <span className="font-mono text-slate-700">{docAnalysis.result.policy_number}</span>
+                            </div>
+                          )}
+                          {docAnalysis.result.action_items?.length > 0 && (
+                            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                              <p className="text-xs font-semibold text-amber-700 mb-1.5">Action items</p>
+                              <ul className="space-y-1">
+                                {docAnalysis.result.action_items.map((item, i) => (
+                                  <li key={i} className="text-xs text-amber-800 flex items-start gap-1.5">
+                                    <span className="text-amber-400 mt-0.5">•</span>{item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {docAnalysis.result.renewal_suggestion && (
+                            <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+                              <p className="text-xs font-semibold text-indigo-600 mb-1">Suggested renewal to track</p>
+                              <p className="text-xs text-indigo-700">{docAnalysis.result.renewal_suggestion.name} — due {docAnalysis.result.renewal_suggestion.renewal_date}</p>
+                              <a href="/renewals">
+                                <button className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 underline">Add to Renewals →</button>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

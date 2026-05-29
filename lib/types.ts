@@ -82,6 +82,11 @@ export interface Liability {
   institution?: string
   notes?: string
   ob_account_id?: string
+  // Mortgage-specific (migration 005)
+  property_value?: number
+  fixed_rate_end_date?: string
+  mortgage_term_years?: number
+  original_loan_amount?: number
   created_at: string
   updated_at: string
 }

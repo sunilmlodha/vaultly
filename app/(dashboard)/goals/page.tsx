@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, Target, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Target, Pencil, Trash2, Sparkles, TrendingUp, TrendingDown } from 'lucide-react'
 import type { Goal } from '@/lib/types'
 
 const CATEGORIES = [
@@ -21,6 +21,15 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ]
 
+interface CoachState {
+  goalId: string
+  loading: boolean
+  tip: string | null
+  on_track: boolean | null
+  required_monthly: number | null
+  monthly_surplus: number | null
+}
+
 const blank = { name: '', category: 'savings', target_amount: '', current_amount: '', currency: 'GBP', target_date: '' }
 
 export default function GoalsPage() {
@@ -30,6 +39,19 @@ export default function GoalsPage() {
   const [editing, setEditing] = useState<Goal | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
+  const [coach, setCoach] = useState<CoachState | null>(null)
+
+  const fetchCoach = async (goalId: string) => {
+    if (coach?.goalId === goalId && coach.tip) return // already loaded
+    setCoach({ goalId, loading: true, tip: null, on_track: null, required_monthly: null, monthly_surplus: null })
+    try {
+      const res = await fetch(`/api/goals/coach?goalId=${goalId}`)
+      const data = await res.json()
+      setCoach({ goalId, loading: false, tip: data.tip, on_track: data.on_track, required_monthly: data.required_monthly, monthly_surplus: data.monthly_surplus })
+    } catch {
+      setCoach(c => c ? { ...c, loading: false, tip: 'Could not load coaching tip right now.' } : null)
+    }
+  }
 
   const load = useCallback(async () => {
     const res = await fetch('/api/goals')
@@ -95,8 +117,48 @@ export default function GoalsPage() {
                     </div>
                     <div className="flex gap-2 mt-4">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(g)}><Pencil size={13} /> Edit</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => coach?.goalId === g.id && coach.tip ? setCoach(null) : fetchCoach(g.id)}
+                        className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
+                      >
+                        <Sparkles size={13} /> Coach
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => del(g.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                     </div>
+
+                    {/* ── Goal Coach Panel ──────────────────────────────── */}
+                    {coach?.goalId === g.id && (
+                      <div className="mt-3 border-t border-slate-100 pt-3">
+                        {coach.loading ? (
+                          <div className="flex items-center gap-2 text-xs text-indigo-600">
+                            <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                            Getting personalised coaching…
+                          </div>
+                        ) : (
+                          <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+                            <div className="flex items-start gap-2">
+                              <div className="w-5 h-5 rounded-lg bg-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
+                                {coach.on_track ? <TrendingUp size={11} className="text-indigo-700" /> : <TrendingDown size={11} className="text-indigo-700" />}
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-indigo-700 mb-1">
+                                  {coach.on_track === null ? 'Goal Coach' : coach.on_track ? '✓ On track' : 'Needs attention'}
+                                </p>
+                                <p className="text-xs text-indigo-800 leading-relaxed">{coach.tip}</p>
+                                {coach.required_monthly !== null && (
+                                  <p className="text-xs text-indigo-500 mt-1">
+                                    Need to save: £{coach.required_monthly.toFixed(0)}/mo
+                                    {coach.monthly_surplus !== null && ` · Current surplus: £${coach.monthly_surplus.toFixed(0)}/mo`}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )

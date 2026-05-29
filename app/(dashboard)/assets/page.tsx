@@ -12,19 +12,42 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, Wallet, Landmark, RefreshCw } from 'lucide-react'
 import type { Asset, AssetCategory } from '@/lib/types'
 
-const CATEGORIES: { value: AssetCategory; label: string }[] = [
+const CATEGORIES: { value: AssetCategory | string; label: string; group?: string }[] = [
+  // ── Core ────────────────────────────────────────────────────────────────
   { value: 'bank_account', label: 'Bank Account' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'pension', label: 'Pension' },
   { value: 'property', label: 'Property' },
   { value: 'crypto', label: 'Crypto' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'other', label: 'Other' },
+  // ── UK Pensions ──────────────────────────────────────────────────────────
+  { value: 'pension', label: 'Pension (Workplace / DB)', group: 'UK Pensions & Investments' },
+  { value: 'sipp', label: 'SIPP (Self-Invested Pension)', group: 'UK Pensions & Investments' },
+  // ── UK ISA ───────────────────────────────────────────────────────────────
+  { value: 'isa_cash', label: 'Cash ISA', group: 'UK ISA' },
+  { value: 'isa_ss', label: 'Stocks & Shares ISA', group: 'UK ISA' },
+  { value: 'isa_lifetime', label: 'Lifetime ISA (LISA)', group: 'UK ISA' },
+  { value: 'isa_junior', label: 'Junior ISA', group: 'UK ISA' },
+  // ── UK/Global Investments ─────────────────────────────────────────────────
+  { value: 'investment', label: 'General Investment (GIA)', group: 'UK/Global Investments' },
+  { value: 'etf', label: 'ETF / Index Fund', group: 'UK/Global Investments' },
+  { value: 'bonds', label: 'Bonds / Gilts', group: 'UK/Global Investments' },
+  // ── France ───────────────────────────────────────────────────────────────
+  { value: 'pea', label: 'PEA (Plan d\'Épargne en Actions)', group: 'France' },
+  { value: 'assurance_vie', label: 'Assurance vie', group: 'France' },
+  { value: 'livret_a', label: 'Livret A / LDDS', group: 'France' },
+  // ── Germany ──────────────────────────────────────────────────────────────
+  { value: 'riester', label: 'Riester-Rente', group: 'Germany' },
 ]
 
-const BADGE: Record<AssetCategory, 'purple' | 'success' | 'info' | 'warning' | 'danger' | 'default'> = {
-  bank_account: 'info', investment: 'success', pension: 'purple',
-  property: 'warning', crypto: 'danger', insurance: 'default', other: 'default',
+const BADGE: Record<string, 'purple' | 'success' | 'info' | 'warning' | 'danger' | 'default'> = {
+  bank_account: 'info',
+  investment: 'success', etf: 'success', bonds: 'success',
+  pension: 'purple', sipp: 'purple', riester: 'purple',
+  isa_cash: 'info', isa_ss: 'success', isa_lifetime: 'success', isa_junior: 'info',
+  pea: 'success', assurance_vie: 'success', livret_a: 'info',
+  property: 'warning',
+  crypto: 'danger',
+  insurance: 'default', other: 'default',
 }
 
 const blank = { name: '', category: 'bank_account' as AssetCategory, value: '', currency: 'GBP', institution: '', notes: '' }

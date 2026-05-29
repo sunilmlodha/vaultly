@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   User, Globe, Shield, Trash2, LogOut, CheckCircle,
-  AlertTriangle, ChevronRight, Lock,
+  AlertTriangle, ChevronRight, Lock, Download,
 } from 'lucide-react'
 
 const CURRENCIES = ['GBP', 'EUR', 'USD', 'INR', 'AED', 'SGD', 'AUD', 'CAD']
@@ -180,6 +180,26 @@ export default function SettingsPage() {
               </div>
               <ChevronRight size={16} className="text-slate-400" />
             </button>
+          </CardContent>
+        </Card>
+
+        {/* GDPR Data Export */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Download size={16} className="text-indigo-500" /> Your Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Download a complete export of all your Vaultly data — assets, liabilities, transactions, goals, renewals, and documents metadata.
+            </p>
+            <p className="text-xs text-slate-400">Your right under UK GDPR Art. 20 / EU GDPR Art. 20 / India DPDP Act 2023 S.12 (data portability).</p>
+            <a href="/api/account/export" download>
+              <Button variant="outline" size="sm" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
+                <Download size={13} /> Download my data (JSON)
+              </Button>
+            </a>
           </CardContent>
         </Card>
 

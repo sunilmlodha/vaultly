@@ -9,6 +9,7 @@ import { CATEGORY_META, CATEGORY_ORDER, categorizeTransaction, type SpendingCate
 import { formatCurrency } from '@/lib/utils'
 import { TrendingDown, TrendingUp, Wallet, PiggyBank, CreditCard, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import { AnomalyDetector } from '@/components/dashboard/anomaly-detector'
 
 export default async function SpendingPage() {
   const session = await auth()
@@ -310,6 +311,9 @@ export default async function SpendingPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* ── Anomaly & Subscription Detector ─────────────────────────── */}
+        <AnomalyDetector />
 
         {/* ── Recent transactions ──────────────────────────────────────── */}
         <Card>
