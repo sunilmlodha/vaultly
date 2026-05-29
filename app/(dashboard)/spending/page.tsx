@@ -54,14 +54,19 @@ export default async function SpendingPage() {
   const thisMonth = txs.filter(t => t.date.startsWith(thisMonthStr))
   const totalIncome = thisMonth.filter(t => t.cat === 'income' && t.amount > 0)
     .reduce((s, t) => s + t.amount, 0)
-  const totalExpenses = thisMonth.filter(t => CATEGORY_META[t.cat]?.isExpense && t.amount < 0)
+  // Exclude 'financial' (CC payments) from expenses — they're already captured
+  // as real spending on the credit card accounts (groceries, dining, etc.)
+  const totalExpenses = thisMonth.filter(t => CATEGORY_META[t.cat]?.isExpense && t.amount < 0 && t.cat !== 'financial')
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0)
   const netSavings = totalIncome - totalExpenses
 
   // ── Category breakdown (all 12 months, expenses only) ────────────────────
+  // 'financial' excluded: CC payments from current accounts are transfers,
+  // not spending — the actual expenses are already on the CC accounts.
   const catMap = new Map<SpendingCategory, { amount: number; count: number }>()
   for (const t of txs) {
     if (!CATEGORY_META[t.cat]?.isExpense || Number(t.amount) >= 0) continue
+    if (t.cat === 'financial') continue
     const prev = catMap.get(t.cat) ?? { amount: 0, count: 0 }
     catMap.set(t.cat, { amount: prev.amount + Math.abs(Number(t.amount)), count: prev.count + 1 })
   }
@@ -88,7 +93,8 @@ export default async function SpendingPage() {
     const prev = monthlyMap.get(ym) ?? { income: 0, expenses: 0 }
     if (t.cat === 'income' && Number(t.amount) > 0) {
       monthlyMap.set(ym, { ...prev, income: prev.income + Number(t.amount) })
-    } else if (CATEGORY_META[t.cat]?.isExpense && Number(t.amount) < 0) {
+    } else if (CATEGORY_META[t.cat]?.isExpense && Number(t.amount) < 0 && t.cat !== 'financial') {
+      // Exclude CC payments to avoid double-counting with CC account transactions
       monthlyMap.set(ym, { ...prev, expenses: prev.expenses + Math.abs(Number(t.amount)) })
     }
   }
