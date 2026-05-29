@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "assets": "Actifs",
+    "liabilities": "Passifs",
+    "goals": "Objectifs",
+    "renewals": "Renouvellements",
+    "connections": "Banques connectées",
+    "spending": "Analyse des dépenses",
+    "documents": "Documents",
+    "family": "Famille",
+    "agent": "Récupération d'actifs",
+    "settings": "Paramètres",
+    "signOut": "Se déconnecter"
+  },
+  "common": {
+    "add": "Ajouter",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement…",
+    "noData": "Aucune donnée",
+    "back": "Retour",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "currency": "Devise",
+    "amount": "Montant",
+    "date": "Date",
+    "name": "Nom",
+    "notes": "Notes",
+    "optional": "facultatif",
+    "required": "obligatoire",
+    "saveChanges": "Enregistrer les modifications",
+    "saved": "Enregistré"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "netWorth": "Valeur nette",
+    "totalAssets": "Total des actifs",
+    "totalLiabilities": "Total des passifs",
+    "monthlyIncome": "Revenus mensuels",
+    "monthlyExpenses": "Dépenses mensuelles",
+    "cashflow": "Flux de trésorerie mensuel",
+    "recentActivity": "Activité récente",
+    "upcomingRenewals": "Renouvellements à venir",
+    "goals": "Objectifs",
+    "noTransactions": "Aucune transaction"
+  },
+  "assets": {
+    "title": "Actifs",
+    "addAsset": "Ajouter un actif",
+    "category": {
+      "bank_account": "Compte bancaire",
+      "investment": "Investissement",
+      "pension": "Retraite",
+      "property": "Immobilier",
+      "crypto": "Cryptomonnaie",
+      "insurance": "Assurance",
+      "other": "Autre"
+    }
+  },
+  "liabilities": {
+    "title": "Passifs",
+    "addLiability": "Ajouter un passif",
+    "interestRate": "Taux d'intérêt",
+    "monthlyPayment": "Paiement mensuel",
+    "category": {
+      "mortgage": "Hypothèque",
+      "loan": "Prêt",
+      "credit_card": "Carte de crédit",
+      "overdraft": "Découvert",
+      "other": "Autre"
+    }
+  },
+  "goals": {
+    "title": "Objectifs",
+    "addGoal": "Ajouter un objectif",
+    "targetAmount": "Montant cible",
+    "currentAmount": "Montant actuel",
+    "targetDate": "Date cible",
+    "progress": "Progression",
+    "onTrack": "Dans les délais",
+    "behind": "En retard"
+  },
+  "renewals": {
+    "title": "Renouvellements",
+    "addRenewal": "Ajouter un renouvellement",
+    "provider": "Fournisseur",
+    "renewalDate": "Date de renouvellement",
+    "autoRenews": "Renouvellement automatique",
+    "overdue": "En retard",
+    "today": "Aujourd'hui",
+    "negotiate": "Négocier"
+  },
+  "spending": {
+    "title": "Analyse des dépenses",
+    "income": "Revenus",
+    "expenses": "Dépenses",
+    "net": "Net",
+    "thisMonth": "Ce mois-ci",
+    "last12Months": "12 derniers mois",
+    "topCategories": "Principales catégories",
+    "recentTransactions": "Transactions récentes"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "profile": "Profil",
+    "language": "Langue",
+    "security": "Sécurité",
+    "dangerZone": "Zone dangereuse",
+    "deleteAccount": "Supprimer mon compte et toutes mes données",
+    "deleteWarning": "Cette action est irréversible.",
+    "appLock": "Verrouillage de l'application",
+    "pinSet": "Code PIN défini — biométrie disponible",
+    "setPinPrompt": "Définir un code PIN pour verrouiller l'application",
+    "signOut": "Se déconnecter",
+    "fullName": "Nom complet",
+    "email": "Adresse e-mail",
+    "defaultCurrency": "Devise par défaut"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "welcomeBack": "Bon retour"
+  }
+}

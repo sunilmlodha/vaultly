@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "assets": "संपत्ति",
+    "liabilities": "देनदारियां",
+    "goals": "लक्ष्य",
+    "renewals": "नवीनीकरण",
+    "connections": "जुड़े बैंक",
+    "spending": "खर्च विश्लेषण",
+    "documents": "दस्तावेज़",
+    "family": "परिवार",
+    "agent": "संपत्ति पुनर्प्राप्ति",
+    "settings": "सेटिंग्स",
+    "signOut": "साइन आउट"
+  },
+  "common": {
+    "add": "जोड़ें",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "loading": "लोड हो रहा है…",
+    "noData": "अभी कोई डेटा नहीं",
+    "back": "वापस",
+    "close": "बंद करें",
+    "confirm": "पुष्टि करें",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "export": "निर्यात करें",
+    "currency": "मुद्रा",
+    "amount": "राशि",
+    "date": "तारीख",
+    "name": "नाम",
+    "notes": "नोट्स",
+    "optional": "वैकल्पिक",
+    "required": "आवश्यक",
+    "saveChanges": "परिवर्तन सहेजें",
+    "saved": "सहेजा गया"
+  },
+  "dashboard": {
+    "title": "डैशबोर्ड",
+    "netWorth": "कुल संपत्ति",
+    "totalAssets": "कुल परिसंपत्तियां",
+    "totalLiabilities": "कुल देनदारियां",
+    "monthlyIncome": "मासिक आय",
+    "monthlyExpenses": "मासिक खर्च",
+    "cashflow": "मासिक नकदी प्रवाह",
+    "recentActivity": "हालिया गतिविधि",
+    "upcomingRenewals": "आगामी नवीनीकरण",
+    "goals": "लक्ष्य",
+    "noTransactions": "अभी कोई लेनदेन नहीं"
+  },
+  "assets": {
+    "title": "संपत्ति",
+    "addAsset": "संपत्ति जोड़ें",
+    "category": {
+      "bank_account": "बैंक खाता",
+      "investment": "निवेश",
+      "pension": "पेंशन",
+      "property": "संपत्ति",
+      "crypto": "क्रिप्टो",
+      "insurance": "बीमा",
+      "other": "अन्य"
+    }
+  },
+  "liabilities": {
+    "title": "देनदारियां",
+    "addLiability": "देनदारी जोड़ें",
+    "interestRate": "ब्याज दर",
+    "monthlyPayment": "मासिक भुगतान",
+    "category": {
+      "mortgage": "होम लोन",
+      "loan": "ऋण",
+      "credit_card": "क्रेडिट कार्ड",
+      "overdraft": "ओवरड्राफ्ट",
+      "other": "अन्य"
+    }
+  },
+  "goals": {
+    "title": "लक्ष्य",
+    "addGoal": "लक्ष्य जोड़ें",
+    "targetAmount": "लक्ष्य राशि",
+    "currentAmount": "वर्तमान राशि",
+    "targetDate": "लक्ष्य तिथि",
+    "progress": "प्रगति",
+    "onTrack": "सही रास्ते पर",
+    "behind": "पिछड़ा हुआ"
+  },
+  "renewals": {
+    "title": "नवीनीकरण",
+    "addRenewal": "नवीनीकरण जोड़ें",
+    "provider": "प्रदाता",
+    "renewalDate": "नवीनीकरण तिथि",
+    "autoRenews": "स्वचालित नवीनीकरण",
+    "overdue": "अतिदेय",
+    "today": "आज",
+    "negotiate": "बातचीत करें"
+  },
+  "spending": {
+    "title": "खर्च विश्लेषण",
+    "income": "आय",
+    "expenses": "खर्च",
+    "net": "शुद्ध",
+    "thisMonth": "इस महीने",
+    "last12Months": "पिछले 12 महीने",
+    "topCategories": "शीर्ष श्रेणियां",
+    "recentTransactions": "हालिया लेनदेन"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "language": "भाषा",
+    "security": "सुरक्षा",
+    "dangerZone": "खतरनाक क्षेत्र",
+    "deleteAccount": "मेरा खाता और सभी डेटा हटाएं",
+    "deleteWarning": "यह क्रिया पूर्ववत नहीं की जा सकती।",
+    "appLock": "ऐप लॉक",
+    "pinSet": "PIN सेट है — बायोमेट्रिक्स उपलब्ध",
+    "setPinPrompt": "ऐप लॉक करने के लिए PIN सेट करें",
+    "signOut": "साइन आउट",
+    "fullName": "पूरा नाम",
+    "email": "ईमेल पता",
+    "defaultCurrency": "डिफ़ॉल्ट मुद्रा"
+  },
+  "auth": {
+    "signIn": "साइन इन करें",
+    "signUp": "साइन अप करें",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "noAccount": "खाता नहीं है?",
+    "haveAccount": "पहले से खाता है?",
+    "welcomeBack": "वापसी पर स्वागत है"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "dashboard": "Übersicht",
+    "assets": "Vermögen",
+    "liabilities": "Verbindlichkeiten",
+    "goals": "Ziele",
+    "renewals": "Verlängerungen",
+    "connections": "Verknüpfte Banken",
+    "spending": "Ausgabenanalyse",
+    "documents": "Dokumente",
+    "family": "Familie",
+    "agent": "Asset-Suche",
+    "settings": "Einstellungen",
+    "signOut": "Abmelden"
+  },
+  "common": {
+    "add": "Hinzufügen",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "loading": "Laden…",
+    "noData": "Noch keine Daten",
+    "back": "Zurück",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "export": "Exportieren",
+    "currency": "Währung",
+    "amount": "Betrag",
+    "date": "Datum",
+    "name": "Name",
+    "notes": "Notizen",
+    "optional": "optional",
+    "required": "erforderlich",
+    "saveChanges": "Änderungen speichern",
+    "saved": "Gespeichert"
+  },
+  "dashboard": {
+    "title": "Übersicht",
+    "netWorth": "Nettovermögen",
+    "totalAssets": "Gesamtvermögen",
+    "totalLiabilities": "Gesamtverbindlichkeiten",
+    "monthlyIncome": "Monatliches Einkommen",
+    "monthlyExpenses": "Monatliche Ausgaben",
+    "cashflow": "Monatlicher Cashflow",
+    "recentActivity": "Letzte Aktivitäten",
+    "upcomingRenewals": "Bevorstehende Verlängerungen",
+    "goals": "Ziele",
+    "noTransactions": "Noch keine Transaktionen"
+  },
+  "assets": {
+    "title": "Vermögen",
+    "addAsset": "Vermögen hinzufügen",
+    "category": {
+      "bank_account": "Bankkonto",
+      "investment": "Investition",
+      "pension": "Rente",
+      "property": "Immobilien",
+      "crypto": "Kryptowährung",
+      "insurance": "Versicherung",
+      "other": "Sonstiges"
+    }
+  },
+  "liabilities": {
+    "title": "Verbindlichkeiten",
+    "addLiability": "Verbindlichkeit hinzufügen",
+    "interestRate": "Zinssatz",
+    "monthlyPayment": "Monatliche Zahlung",
+    "category": {
+      "mortgage": "Hypothek",
+      "loan": "Darlehen",
+      "credit_card": "Kreditkarte",
+      "overdraft": "Überziehung",
+      "other": "Sonstiges"
+    }
+  },
+  "goals": {
+    "title": "Ziele",
+    "addGoal": "Ziel hinzufügen",
+    "targetAmount": "Zielbetrag",
+    "currentAmount": "Aktueller Betrag",
+    "targetDate": "Zieldatum",
+    "progress": "Fortschritt",
+    "onTrack": "Im Plan",
+    "behind": "Rückstand"
+  },
+  "renewals": {
+    "title": "Verlängerungen",
+    "addRenewal": "Verlängerung hinzufügen",
+    "provider": "Anbieter",
+    "renewalDate": "Verlängerungsdatum",
+    "autoRenews": "Automatische Verlängerung",
+    "overdue": "Überfällig",
+    "today": "Heute",
+    "negotiate": "Verhandeln"
+  },
+  "spending": {
+    "title": "Ausgabenanalyse",
+    "income": "Einnahmen",
+    "expenses": "Ausgaben",
+    "net": "Netto",
+    "thisMonth": "Diesen Monat",
+    "last12Months": "Letzte 12 Monate",
+    "topCategories": "Top-Kategorien",
+    "recentTransactions": "Letzte Transaktionen"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "profile": "Profil",
+    "language": "Sprache",
+    "security": "Sicherheit",
+    "dangerZone": "Gefahrenbereich",
+    "deleteAccount": "Konto und alle Daten löschen",
+    "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "appLock": "App-Sperre",
+    "pinSet": "PIN gesetzt — Biometrie verfügbar",
+    "setPinPrompt": "PIN setzen, um die App zu sperren",
+    "signOut": "Abmelden",
+    "fullName": "Vollständiger Name",
+    "email": "E-Mail-Adresse",
+    "defaultCurrency": "Standardwährung"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Bereits ein Konto?",
+    "welcomeBack": "Willkommen zurück"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "assets": "Assets",
+    "liabilities": "Liabilities",
+    "goals": "Goals",
+    "renewals": "Renewals",
+    "connections": "Connected Banks",
+    "spending": "Spending Analytics",
+    "documents": "Documents",
+    "family": "Family",
+    "agent": "Asset Recovery",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "common": {
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "noData": "No data yet",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "currency": "Currency",
+    "amount": "Amount",
+    "date": "Date",
+    "name": "Name",
+    "notes": "Notes",
+    "optional": "optional",
+    "required": "required",
+    "saveChanges": "Save changes",
+    "saved": "Saved"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "netWorth": "Net worth",
+    "totalAssets": "Total assets",
+    "totalLiabilities": "Total liabilities",
+    "monthlyIncome": "Monthly income",
+    "monthlyExpenses": "Monthly expenses",
+    "cashflow": "Monthly cashflow",
+    "recentActivity": "Recent activity",
+    "upcomingRenewals": "Upcoming renewals",
+    "goals": "Goals",
+    "noTransactions": "No transactions yet"
+  },
+  "assets": {
+    "title": "Assets",
+    "addAsset": "Add asset",
+    "category": {
+      "bank_account": "Bank account",
+      "investment": "Investment",
+      "pension": "Pension",
+      "property": "Property",
+      "crypto": "Crypto",
+      "insurance": "Insurance",
+      "other": "Other"
+    }
+  },
+  "liabilities": {
+    "title": "Liabilities",
+    "addLiability": "Add liability",
+    "interestRate": "Interest rate",
+    "monthlyPayment": "Monthly payment",
+    "category": {
+      "mortgage": "Mortgage",
+      "loan": "Loan",
+      "credit_card": "Credit card",
+      "overdraft": "Overdraft",
+      "other": "Other"
+    }
+  },
+  "goals": {
+    "title": "Goals",
+    "addGoal": "Add goal",
+    "targetAmount": "Target amount",
+    "currentAmount": "Current amount",
+    "targetDate": "Target date",
+    "progress": "Progress",
+    "onTrack": "On track",
+    "behind": "Behind"
+  },
+  "renewals": {
+    "title": "Renewals",
+    "addRenewal": "Add renewal",
+    "provider": "Provider",
+    "renewalDate": "Renewal date",
+    "autoRenews": "Auto-renews",
+    "overdue": "Overdue",
+    "today": "Today",
+    "negotiate": "Negotiate"
+  },
+  "spending": {
+    "title": "Spending Analytics",
+    "income": "Income",
+    "expenses": "Expenses",
+    "net": "Net",
+    "thisMonth": "This month",
+    "last12Months": "Last 12 months",
+    "topCategories": "Top categories",
+    "recentTransactions": "Recent transactions"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "language": "Language",
+    "security": "Security",
+    "dangerZone": "Danger zone",
+    "deleteAccount": "Delete my account & all data",
+    "deleteWarning": "This action cannot be undone.",
+    "appLock": "App lock",
+    "pinSet": "PIN set — biometrics available",
+    "setPinPrompt": "Set a PIN to lock the app",
+    "signOut": "Sign out",
+    "fullName": "Full name",
+    "email": "Email address",
+    "defaultCurrency": "Default currency"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "welcomeBack": "Welcome back"
+  }
+}
