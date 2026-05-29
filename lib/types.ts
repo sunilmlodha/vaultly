@@ -98,7 +98,19 @@ export interface Renewal {
   provider?: string
   auto_renews: boolean
   notes?: string
+  negotiation_status?: 'cancel' | 'negotiate' | 'switch' | null
   created_at: string
+}
+
+export interface RenewalNegotiation {
+  id: string
+  renewal_id: string
+  user_id: string
+  household_id: string
+  messages: AgentMessage[]
+  draft_letter?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Goal {

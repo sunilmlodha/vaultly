@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,12 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate, getDaysUntil } from '@/lib/utils'
 import { Plus, RefreshCw, Trash2, Pencil, Sparkles, X, CheckCheck, Loader2 } from 'lucide-react'
 import type { Renewal, DetectedRecurring } from '@/lib/types'
+
+const NEGOTIATION_BADGE: Record<string, { label: string; variant: 'danger' | 'warning' | 'info' | 'default' }> = {
+  cancel:    { label: 'Cancel', variant: 'danger' },
+  negotiate: { label: 'Negotiate', variant: 'warning' },
+  switch:    { label: 'Switch', variant: 'info' },
+}
 
 const CATEGORIES = [
   { value: 'subscription', label: 'Subscription' },
@@ -25,6 +32,7 @@ const blank = { name: '', category: 'subscription', amount: '', currency: 'GBP',
 
 export default function RenewalsPage() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [items, setItems] = useState<Renewal[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Renewal | null>(null)
@@ -212,7 +220,22 @@ export default function RenewalsPage() {
                           {days < 0 ? 'Overdue' : days === 0 ? 'Today' : `${days}d`}
                         </Badge>
                       </div>
+                      {/* Negotiation status badge */}
+                      {r.negotiation_status && NEGOTIATION_BADGE[r.negotiation_status] && (
+                        <Badge variant={NEGOTIATION_BADGE[r.negotiation_status].variant} className="hidden sm:flex">
+                          {NEGOTIATION_BADGE[r.negotiation_status].label}
+                        </Badge>
+                      )}
                       <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/renewals/negotiate/${r.id}`)}
+                          className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                          title="AI Negotiation Agent"
+                        >
+                          <Sparkles size={13} />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => openEdit(r)}><Pencil size={13} /></Button>
                         <Button variant="ghost" size="sm" onClick={() => del(r.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                       </div>

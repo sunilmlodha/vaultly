@@ -108,15 +108,17 @@ function categorize(description, merchant) {
 }
 
 // ─── IDs ──────────────────────────────────────────────────────────────────────
-const CONN_ID = 'demo-conn-johnson-001'
+// Household-scoped IDs so two households never clobber each other
+const HID_SUFFIX = HOUSEHOLD_ID.slice(0, 8)
+const CONN_ID = `demo-conn-johnson-${HID_SUFFIX}`
 
 const ACCOUNTS = {
-  lloyds: { id: 'demo-acc-lloyds-current', name: 'Lloyds Current Account', type: 'TRANSACTION', bank: 'Lloyds Bank', side: 'asset', category: 'bank_account', balance: 2847.53 },
-  barclays: { id: 'demo-acc-barclays-current', name: 'Barclays Current Account', type: 'TRANSACTION', bank: 'Barclays Bank', side: 'asset', category: 'bank_account', balance: 634.21 },
-  nationwide_sav: { id: 'demo-acc-nationwide-savings', name: 'Nationwide Instant Saver', type: 'SAVINGS', bank: 'Nationwide BS', side: 'asset', category: 'savings', balance: 18750.00 },
-  nationwide_isa: { id: 'demo-acc-nationwide-isa', name: 'Nationwide Cash ISA', type: 'SAVINGS', bank: 'Nationwide BS', side: 'asset', category: 'savings', balance: 32400.00 },
-  mbna: { id: 'demo-acc-mbna-cc', name: 'MBNA Credit Card', type: 'CREDIT_CARD', bank: 'MBNA Ltd', side: 'liability', category: 'credit_card', balance: 1847.62 },
-  barclaycard: { id: 'demo-acc-barclaycard-cc', name: 'Barclaycard Rewards', type: 'CREDIT_CARD', bank: 'Barclaycard', side: 'liability', category: 'credit_card', balance: 2134.85 },
+  lloyds:          { id: `demo-acc-lloyds-current-${HID_SUFFIX}`,    name: 'Lloyds Current Account',  type: 'TRANSACTION',  bank: 'Lloyds Bank',   side: 'asset',     category: 'bank_account', balance: 2847.53  },
+  barclays:        { id: `demo-acc-barclays-current-${HID_SUFFIX}`,  name: 'Barclays Current Account', type: 'TRANSACTION',  bank: 'Barclays Bank', side: 'asset',     category: 'bank_account', balance: 634.21   },
+  nationwide_sav:  { id: `demo-acc-nationwide-sav-${HID_SUFFIX}`,    name: 'Nationwide Instant Saver', type: 'SAVINGS',      bank: 'Nationwide BS', side: 'asset',     category: 'savings',      balance: 18750.00 },
+  nationwide_isa:  { id: `demo-acc-nationwide-isa-${HID_SUFFIX}`,    name: 'Nationwide Cash ISA',      type: 'SAVINGS',      bank: 'Nationwide BS', side: 'asset',     category: 'savings',      balance: 32400.00 },
+  mbna:            { id: `demo-acc-mbna-cc-${HID_SUFFIX}`,           name: 'MBNA Credit Card',         type: 'CREDIT_CARD',  bank: 'MBNA Ltd',      side: 'liability', category: 'credit_card',  balance: 1847.62  },
+  barclaycard:     { id: `demo-acc-barclaycard-cc-${HID_SUFFIX}`,    name: 'Barclaycard Rewards',      type: 'CREDIT_CARD',  bank: 'Barclaycard',   side: 'liability', category: 'credit_card',  balance: 2134.85  },
 }
 
 // ─── Transaction generators ────────────────────────────────────────────────────
