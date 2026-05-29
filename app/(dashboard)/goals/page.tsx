@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Target, Pencil, Trash2, Sparkles, TrendingUp, TrendingDown } from 'lucide-react'
 import type { Goal } from '@/lib/types'
+import { useFormatCurrency, useUserPrefs } from '@/components/providers/user-prefs-provider'
 
 const CATEGORIES = [
   { value: 'savings', label: 'Savings' },
@@ -34,6 +35,8 @@ const blank = { name: '', category: 'savings', target_amount: '', current_amount
 
 export default function GoalsPage() {
   const { data: session } = useSession()
+  const { currency: userCurrency } = useUserPrefs()
+  const fmtCurrency = useFormatCurrency()
   const [goals, setGoals] = useState<Goal[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
@@ -61,7 +64,7 @@ export default function GoalsPage() {
 
   useEffect(() => { load() }, [load])
 
-  const openAdd = () => { setEditing(null); setForm(blank); setOpen(true) }
+  const openAdd = () => { setEditing(null); setForm({ ...blank, currency: userCurrency || 'GBP' }); setOpen(true) }
   const openEdit = (g: Goal) => {
     setEditing(g)
     setForm({ name: g.name, category: g.category, target_amount: String(g.target_amount), current_amount: String(g.current_amount), currency: g.currency, target_date: g.target_date || '' })
@@ -112,8 +115,8 @@ export default function GoalsPage() {
                       <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="font-semibold text-slate-700">{formatCurrency(Number(g.current_amount), g.currency)}</span>
-                      <span className="text-slate-400">of {formatCurrency(Number(g.target_amount), g.currency)}</span>
+                      <span className="font-semibold text-slate-700">{fmtCurrency(Number(g.current_amount), g.currency)}</span>
+                      <span className="text-slate-400">of {fmtCurrency(Number(g.target_amount), g.currency)}</span>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(g)}><Pencil size={13} /> Edit</Button>

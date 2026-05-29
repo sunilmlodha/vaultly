@@ -7,24 +7,26 @@ import {
   FileText, Target, Search, LogOut, Vault, Landmark, BarChart3, Settings, TrendingUp
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-
-const nav = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/assets', label: 'Assets', icon: Wallet },
-  { href: '/liabilities', label: 'Liabilities', icon: CreditCard },
-  { href: '/goals', label: 'Goals', icon: Target },
-  { href: '/renewals', label: 'Renewals', icon: RefreshCw },
-  { href: '/connections', label: 'Connected Banks', icon: Landmark },
-  { href: '/spending', label: 'Spending Analytics', icon: BarChart3 },
-  { href: '/forecast', label: 'Cashflow Forecast', icon: TrendingUp },
-  { href: '/documents', label: 'Documents', icon: FileText },
-  { href: '/family', label: 'Family', icon: Users },
-  { href: '/agent', label: 'Asset Recovery', icon: Search, highlight: true },
-  { href: '/settings', label: 'Settings', icon: Settings },
-]
+import { useTranslations } from 'next-intl'
 
 export function Sidebar() {
   const pathname = usePathname()
+  const t = useTranslations('nav')
+
+  const nav = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/assets', label: t('assets'), icon: Wallet },
+    { href: '/liabilities', label: t('liabilities'), icon: CreditCard },
+    { href: '/goals', label: t('goals'), icon: Target },
+    { href: '/renewals', label: t('renewals'), icon: RefreshCw },
+    { href: '/connections', label: t('connections'), icon: Landmark },
+    { href: '/spending', label: t('spending'), icon: BarChart3 },
+    { href: '/forecast', label: t('forecast'), icon: TrendingUp },
+    { href: '/documents', label: t('documents'), icon: FileText },
+    { href: '/family', label: t('family'), icon: Users },
+    { href: '/agent', label: t('agent'), icon: Search, highlight: true },
+    { href: '/settings', label: t('settings'), icon: Settings },
+  ]
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })

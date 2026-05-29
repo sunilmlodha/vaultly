@@ -3,17 +3,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Wallet, RefreshCw, Search, BarChart3 } from 'lucide-react'
-
-const nav = [
-  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/assets', label: 'Assets', icon: Wallet },
-  { href: '/spending', label: 'Spending', icon: BarChart3 },
-  { href: '/agent', label: 'Recovery', icon: Search },
-  { href: '/renewals', label: 'Renewals', icon: RefreshCw },
-]
+import { useTranslations } from 'next-intl'
 
 export function MobileNav() {
   const pathname = usePathname()
+  const t = useTranslations('nav')
+
+  const nav = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/assets', label: t('assets'), icon: Wallet },
+    { href: '/spending', label: t('spending'), icon: BarChart3 },
+    { href: '/agent', label: t('agent'), icon: Search },
+    { href: '/renewals', label: t('renewals'), icon: RefreshCw },
+  ]
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-40 safe-area-pb">
       <div className="flex items-center justify-around px-2 py-2">

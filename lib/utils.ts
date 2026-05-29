@@ -5,8 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const BCP_MAP: Record<string, string> = {
+  en: 'en-GB',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  hi: 'hi-IN',
+}
+
+function getClientLocale(): string {
+  if (typeof window === 'undefined') return 'en-GB'
+  const lang = localStorage.getItem('vaultly_lang') || 'en'
+  return BCP_MAP[lang] || 'en-GB'
+}
+
 export function formatCurrency(amount: number, currency = 'GBP'): string {
-  return new Intl.NumberFormat('en-GB', {
+  const bcpLocale = currency === 'INR' ? 'en-IN' : getClientLocale()
+  return new Intl.NumberFormat(bcpLocale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
@@ -18,7 +32,8 @@ export function formatDate(date: string | Date): string {
   if (!date) return 'N/A'
   const d = new Date(date)
   if (isNaN(d.getTime())) return 'N/A'
-  return new Intl.DateTimeFormat('en-GB', {
+  const bcpLocale = getClientLocale()
+  return new Intl.DateTimeFormat(bcpLocale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

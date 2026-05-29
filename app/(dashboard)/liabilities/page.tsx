@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, CreditCard, Landmark, RefreshCw, Home, AlertTriangle } from 'lucide-react'
 import type { Liability, LiabilityCategory } from '@/lib/types'
+import { useFormatCurrency, useUserPrefs } from '@/components/providers/user-prefs-provider'
 
 const CATEGORIES: { value: LiabilityCategory; label: string }[] = [
   { value: 'mortgage', label: 'Mortgage' },
@@ -44,6 +45,8 @@ function remortgageAlert(fixedRateEndDate: string | null | undefined): { urgent:
 
 export default function LiabilitiesPage() {
   const { data: session } = useSession()
+  const { currency: userCurrency } = useUserPrefs()
+  const fmtCurrency = useFormatCurrency()
   const [items, setItems] = useState<Liability[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Liability | null>(null)
@@ -64,7 +67,7 @@ export default function LiabilitiesPage() {
 
   useEffect(() => { load() }, [load])
 
-  const openAdd = () => { setEditing(null); setForm(blank); setOpen(true) }
+  const openAdd = () => { setEditing(null); setForm({ ...blank, currency: userCurrency || 'GBP' }); setOpen(true) }
   const openEdit = (l: Liability) => {
     setEditing(l)
     setForm({
@@ -109,7 +112,7 @@ export default function LiabilitiesPage() {
 
   return (
     <div>
-      <Topbar title="Liabilities" subtitle={`${items.length} items · ${formatCurrency(total)} total`} userName={session?.user?.name ?? ''}
+      <Topbar title="Liabilities" subtitle={`${items.length} items · ${fmtCurrency(total)} total`} userName={session?.user?.name ?? ''}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={connectBank}><Landmark size={14} /> Connect bank</Button>
@@ -155,7 +158,7 @@ export default function LiabilitiesPage() {
                       <Badge variant="danger">{CATEGORIES.find(c => c.value === l.category)?.label}</Badge>
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-rose-500">{formatCurrency(Number(l.balance), l.currency)}</p>
+                  <p className="text-2xl font-bold text-rose-500">{fmtCurrency(Number(l.balance), l.currency)}</p>
                   {l.ob_account_id && (
                     <p className="text-xs text-indigo-400 mt-0.5 flex items-center gap-1">
                       <RefreshCw size={9} /> Live balance
@@ -178,7 +181,7 @@ export default function LiabilitiesPage() {
                     </div>
                   )}
                   {l.interest_rate && <p className="text-xs text-slate-400 mt-0.5">{l.interest_rate}% interest</p>}
-                  {l.monthly_payment && <p className="text-xs text-slate-400">{formatCurrency(Number(l.monthly_payment), l.currency)}/mo</p>}
+                  {l.monthly_payment && <p className="text-xs text-slate-400">{fmtCurrency(Number(l.monthly_payment), l.currency)}/mo</p>}
                   <p className="text-xs text-slate-400 mt-1">Added {formatDate(l.created_at)}</p>
                   <div className="flex gap-2 mt-4">
                     <Button

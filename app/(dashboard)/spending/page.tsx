@@ -14,6 +14,11 @@ import { AnomalyDetector } from '@/components/dashboard/anomaly-detector'
 export default async function SpendingPage() {
   const session = await auth()
   const hid = session!.user.householdId
+  const uid = session!.user.id
+
+  // ── User's preferred currency ─────────────────────────────────────────────
+  const userRow = await db.execute({ sql: `SELECT currency FROM users WHERE id = ?`, args: [uid] })
+  const userCurrency: string = (userRow.rows[0] as unknown as { currency: string })?.currency || 'GBP'
 
   // ── Date window: last 12 months ──────────────────────────────────────────
   const cutoff = new Date()
@@ -132,7 +137,7 @@ export default async function SpendingPage() {
 
   return (
     <div>
-      <Topbar title="Spending Analytics" subtitle="12-month view of your household finances" userName={session?.user?.name ?? ''} />
+      <Topbar title="Spending Analytics" subtitle={`12-month view · ${userCurrency}`} userName={session?.user?.name ?? ''} />
       <div className="p-4 md:p-8 space-y-6 animate-fade-in">
 
         {noData && (
@@ -160,7 +165,7 @@ export default async function SpendingPage() {
                 </div>
                 <p className="text-xs text-slate-500 font-medium">Income this month</p>
               </div>
-              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalIncome, 'GBP')}</p>
+              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalIncome, userCurrency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -171,7 +176,7 @@ export default async function SpendingPage() {
                 </div>
                 <p className="text-xs text-slate-500 font-medium">Spent this month</p>
               </div>
-              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalExpenses, 'GBP')}</p>
+              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalExpenses, userCurrency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -183,7 +188,7 @@ export default async function SpendingPage() {
                 <p className="text-xs text-slate-500 font-medium">Net saved this month</p>
               </div>
               <p className={`text-xl font-bold ${netSavings >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
-                {formatCurrency(netSavings, 'GBP')}
+                {formatCurrency(netSavings, userCurrency)}
               </p>
             </CardContent>
           </Card>
@@ -195,7 +200,7 @@ export default async function SpendingPage() {
                 </div>
                 <p className="text-xs text-slate-500 font-medium">12-month spend</p>
               </div>
-              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalSpend12m, 'GBP')}</p>
+              <p className="text-xl font-bold text-slate-800">{formatCurrency(totalSpend12m, userCurrency)}</p>
             </CardContent>
           </Card>
         </div>
@@ -204,11 +209,11 @@ export default async function SpendingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader><CardTitle>Spending by Category</CardTitle></CardHeader>
-            <CardContent><SpendingBreakdown categories={categories} currency="GBP" /></CardContent>
+            <CardContent><SpendingBreakdown categories={categories} currency={userCurrency} /></CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Monthly Cash Flow</CardTitle></CardHeader>
-            <CardContent><MonthlyCashflow data={monthly} currency="GBP" /></CardContent>
+            <CardContent><MonthlyCashflow data={monthly} currency={userCurrency} /></CardContent>
           </Card>
         </div>
 
@@ -226,7 +231,7 @@ export default async function SpendingPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-slate-700">{c.label}</span>
-                        <span className="text-sm font-semibold text-slate-800 ml-2 shrink-0">{formatCurrency(c.amount, 'GBP')}</span>
+                        <span className="text-sm font-semibold text-slate-800 ml-2 shrink-0">{formatCurrency(c.amount, userCurrency)}</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
@@ -270,7 +275,7 @@ export default async function SpendingPage() {
                   <div className="pt-2 border-t border-slate-100 flex justify-between">
                     <span className="text-sm font-semibold text-slate-600">Total</span>
                     <span className="text-sm font-bold text-emerald-700">
-                      {formatCurrency(assets.reduce((s, a) => s + Number(a.balance), 0), 'GBP')}
+                      {formatCurrency(assets.reduce((s, a) => s + Number(a.balance), 0), userCurrency)}
                     </span>
                   </div>
                 </div>
@@ -303,7 +308,7 @@ export default async function SpendingPage() {
                   <div className="pt-2 border-t border-slate-100 flex justify-between">
                     <span className="text-sm font-semibold text-slate-600">Total owed</span>
                     <span className="text-sm font-bold text-rose-600">
-                      {formatCurrency(liabilities.reduce((s, a) => s + Number(a.balance), 0), 'GBP')}
+                      {formatCurrency(liabilities.reduce((s, a) => s + Number(a.balance), 0), userCurrency)}
                     </span>
                   </div>
                 </div>

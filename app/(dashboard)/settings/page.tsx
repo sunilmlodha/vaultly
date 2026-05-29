@@ -52,6 +52,8 @@ export default function SettingsPage() {
     })
     setSaving(false)
     setSaved(true)
+    // Notify the UserPrefsProvider to re-fetch the new currency
+    window.dispatchEvent(new Event('vaultly:currency-changed'))
     setTimeout(() => setSaved(false), 2000)
   }
 
