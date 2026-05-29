@@ -20,10 +20,21 @@ export function NetWorthChart({ netWorth, currency }: NetWorthChartProps) {
   const data = mockData.map((d, i) =>
     i === mockData.length - 1 ? { ...d, value: netWorth } : d
   )
+
+  // Calculate real % change: current net worth vs the second-to-last data point
+  const prevValue = data[data.length - 2]?.value ?? 0
+  const pctChange = prevValue > 0
+    ? ((netWorth - prevValue) / prevValue) * 100
+    : 0
+  const pctLabel = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(1)}%`
+  const trendColour = pctChange >= 0 ? 'text-emerald-600' : 'text-rose-500'
+
   return (
     <div>
       <p className="text-3xl font-bold text-slate-800 mb-1">{formatCurrency(netWorth, currency)}</p>
-      <p className="text-sm text-emerald-600 font-medium mb-4">+6.2% since last month</p>
+      <p className={`text-sm font-medium mb-4 ${trendColour}`}>
+        {pctLabel} since last month
+      </p>
       <ResponsiveContainer width="100%" height={160}>
         <AreaChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
           <defs>
