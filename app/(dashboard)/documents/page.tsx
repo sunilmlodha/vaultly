@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,20 +22,12 @@ interface AnalysisState {
   error: string | null
 }
 
-const CATEGORIES = [
-  { value: 'pension_statement', label: 'Pension Statement' },
-  { value: 'insurance_policy', label: 'Insurance Policy' },
-  { value: 'will', label: 'Will / LPA' },
-  { value: 'mortgage', label: 'Mortgage' },
-  { value: 'tax', label: 'Tax' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'other', label: 'Other' },
-]
-
 const blank = { name: '', category: 'other' }
 
 export default function DocumentsPage() {
   const { data: session } = useSession()
+  const tc = useTranslations('common')
+  const t = useTranslations('documents')
   const [docs, setDocs] = useState<Doc[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(blank)
@@ -44,16 +37,26 @@ export default function DocumentsPage() {
   const [analysis, setAnalysis] = useState<AnalysisState | null>(null)
   const [expandedAnalysis, setExpandedAnalysis] = useState<string | null>(null)
 
+  const CATEGORIES = [
+    { value: 'pension_statement', label: t('category.pension_statement') },
+    { value: 'insurance_policy', label: t('category.insurance_policy') },
+    { value: 'will', label: t('category.will') },
+    { value: 'mortgage', label: t('category.mortgage') },
+    { value: 'tax', label: t('category.tax') },
+    { value: 'investment', label: t('category.investment') },
+    { value: 'other', label: t('category.other') },
+  ]
+
   const analyseDoc = async (docId: string) => {
     setAnalysis({ docId, loading: true, result: null, error: null })
     setExpandedAnalysis(docId)
     try {
       const res = await fetch(`/api/documents/${docId}/analyse`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
+      if (!res.ok) throw new Error(data.error || t('errors.analysisFailed'))
       setAnalysis({ docId, loading: false, result: data.analysis, error: null })
     } catch (e: unknown) {
-      setAnalysis({ docId, loading: false, result: null, error: e instanceof Error ? e.message : 'Analysis failed' })
+      setAnalysis({ docId, loading: false, result: null, error: e instanceof Error ? e.message : t('errors.analysisFailed') })
     }
   }
 
@@ -71,7 +74,7 @@ export default function DocumentsPage() {
   const upload = async () => {
     if (!file) return
     if (file.size > MAX_SIZE) {
-      setError(`File is too large (${fmt(file.size)}). Maximum size is 4MB.`)
+      setError(t('errors.fileTooLarge'))
       return
     }
     setLoading(true)
@@ -88,29 +91,29 @@ export default function DocumentsPage() {
       }
       setOpen(false); setFile(null); setForm(blank); load()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Upload failed. Please try again.')
+      setError(e instanceof Error ? e.message : t('errors.uploadFailed'))
     } finally {
       setLoading(false)
     }
   }
 
   const del = async (id: string) => {
-    if (!confirm('Delete document?')) return
+    if (!confirm(t('deleteConfirm'))) return
     await fetch('/api/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
   return (
     <div>
-      <Topbar title="Documents" subtitle={`${docs.length} stored · Vercel Blob`} userName={session?.user?.name ?? ''}
-        actions={<Button onClick={() => setOpen(true)} size="sm"><Plus size={14} /> Upload</Button>} />
+      <Topbar title={t('title')} subtitle={`${docs.length} ${t('subtitleStorage')}`} userName={session?.user?.name ?? ''}
+        actions={<Button onClick={() => setOpen(true)} size="sm"><Plus size={14} /> {t('upload')}</Button>} />
       <div className="p-4 md:p-8 animate-fade-in">
         {docs.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
             <FileText size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No documents yet</p>
-            <p className="text-slate-400 text-sm mb-4">Store wills, pension statements, insurance policies</p>
-            <Button onClick={() => setOpen(true)} size="sm"><Plus size={14} /> Upload first document</Button>
+            <p className="text-slate-500 font-medium">{t('empty')}</p>
+            <p className="text-slate-400 text-sm mb-4">{t('emptyDesc')}</p>
+            <Button onClick={() => setOpen(true)} size="sm"><Plus size={14} /> {t('uploadFirstDocument')}</Button>
           </CardContent></Card>
         ) : (
           <div className="space-y-3">
@@ -140,9 +143,9 @@ export default function DocumentsPage() {
                         size="sm"
                         onClick={() => isExpanded && docAnalysis?.result ? setExpandedAnalysis(null) : analyseDoc(d.id)}
                         className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
-                        title="Analyse with AI"
+                        title={t('analyseWithAI')}
                       >
-                        <Sparkles size={14} /> {isAnalysing ? 'Analysing…' : 'AI'}
+                        <Sparkles size={14} /> {isAnalysing ? t('analysing') : t('ai')}
                         {docAnalysis?.result && (isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />)}
                       </Button>
                       <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener noreferrer">
@@ -158,7 +161,7 @@ export default function DocumentsPage() {
                       {docAnalysis.loading && (
                         <div className="flex items-center gap-2 text-sm text-indigo-600">
                           <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                          Analysing document with AI…
+                          {t('analysingWithAI')}
                         </div>
                       )}
                       {docAnalysis.error && (
@@ -180,7 +183,7 @@ export default function DocumentsPage() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {docAnalysis.result.key_dates?.length > 0 && (
                               <div className="bg-slate-50 rounded-xl p-3">
-                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><Calendar size={11} /> Key dates</p>
+                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><Calendar size={11} /> {t('keyDates')}</p>
                                 <div className="space-y-1">
                                   {docAnalysis.result.key_dates.map((kd, i) => (
                                     <div key={i} className="flex justify-between text-xs">
@@ -193,7 +196,7 @@ export default function DocumentsPage() {
                             )}
                             {docAnalysis.result.key_amounts?.length > 0 && (
                               <div className="bg-slate-50 rounded-xl p-3">
-                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><PoundSterling size={11} /> Key amounts</p>
+                                <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1.5"><PoundSterling size={11} /> {t('keyAmounts')}</p>
                                 <div className="space-y-1">
                                   {docAnalysis.result.key_amounts.map((ka, i) => (
                                     <div key={i} className="flex justify-between text-xs">
@@ -207,12 +210,12 @@ export default function DocumentsPage() {
                           </div>
                           {docAnalysis.result.policy_number && (
                             <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <Hash size={11} /> Policy/reference: <span className="font-mono text-slate-700">{docAnalysis.result.policy_number}</span>
+                              <Hash size={11} /> {t('policyReference') + ': '}<span className="font-mono text-slate-700">{docAnalysis.result.policy_number}</span>
                             </div>
                           )}
                           {docAnalysis.result.action_items?.length > 0 && (
                             <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-                              <p className="text-xs font-semibold text-amber-700 mb-1.5">Action items</p>
+                              <p className="text-xs font-semibold text-amber-700 mb-1.5">{t('actionItems')}</p>
                               <ul className="space-y-1">
                                 {docAnalysis.result.action_items.map((item, i) => (
                                   <li key={i} className="text-xs text-amber-800 flex items-start gap-1.5">
@@ -224,10 +227,10 @@ export default function DocumentsPage() {
                           )}
                           {docAnalysis.result.renewal_suggestion && (
                             <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
-                              <p className="text-xs font-semibold text-indigo-600 mb-1">Suggested renewal to track</p>
-                              <p className="text-xs text-indigo-700">{docAnalysis.result.renewal_suggestion.name} — due {docAnalysis.result.renewal_suggestion.renewal_date}</p>
+                              <p className="text-xs font-semibold text-indigo-600 mb-1">{t('suggestedRenewal')}</p>
+                              <p className="text-xs text-indigo-700">{docAnalysis.result.renewal_suggestion.name} — {t('renewalDue') + ' '}{docAnalysis.result.renewal_suggestion.renewal_date}</p>
                               <a href="/renewals">
-                                <button className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 underline">Add to Renewals →</button>
+                                <button className="mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-700 underline">{t('addToRenewals')}</button>
                               </a>
                             </div>
                           )}
@@ -242,7 +245,7 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
-      <Modal open={open} onClose={() => { setOpen(false); setError(null) }} title="Upload Document">
+      <Modal open={open} onClose={() => { setOpen(false); setError(null) }} title={t('uploadModal')}>
         <div className="space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
@@ -250,15 +253,15 @@ export default function DocumentsPage() {
             </div>
           )}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">File <span className="text-slate-400 font-normal">(max 4MB)</span></label>
+            <label className="block text-sm font-medium text-slate-700">{t('form.file')} <span className="text-slate-400 font-normal">{t('form.fileMaxSize')}</span></label>
             <input type="file" onChange={e => { setFile(e.target.files?.[0] || null); setError(null) }} accept=".pdf,.doc,.docx,.jpg,.png"
               className="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600 file:font-medium hover:file:bg-indigo-100 transition-all" />
           </div>
-          <Input label="Document name (optional)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Leave blank to use filename" />
-          <Select label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
+          <Input label={t('form.documentName')} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={t('form.documentNamePlaceholder')} />
+          <Select label={t('form.category')} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" onClick={() => { setOpen(false); setError(null) }} className="flex-1">Cancel</Button>
-            <Button onClick={upload} loading={loading} disabled={!file} className="flex-1">Upload to Vault</Button>
+            <Button variant="secondary" onClick={() => { setOpen(false); setError(null) }} className="flex-1">{tc('cancel')}</Button>
+            <Button onClick={upload} loading={loading} disabled={!file} className="flex-1">{t('form.uploadToVault')}</Button>
           </div>
         </div>
       </Modal>

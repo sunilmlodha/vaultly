@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,16 +11,6 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Target, Pencil, Trash2, Sparkles, TrendingUp, TrendingDown } from 'lucide-react'
 import type { Goal } from '@/lib/types'
-
-const CATEGORIES = [
-  { value: 'savings', label: 'Savings' },
-  { value: 'emergency_fund', label: 'Emergency Fund' },
-  { value: 'holiday', label: 'Holiday' },
-  { value: 'property', label: 'Property' },
-  { value: 'retirement', label: 'Retirement' },
-  { value: 'education', label: 'Education' },
-  { value: 'other', label: 'Other' },
-]
 
 interface CoachState {
   goalId: string
@@ -39,12 +30,24 @@ function getDefaultCurrency() {
 
 export default function GoalsPage() {
   const { data: session } = useSession()
+  const t = useTranslations('goals')
+  const tc = useTranslations('common')
   const [goals, setGoals] = useState<Goal[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Goal | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
   const [coach, setCoach] = useState<CoachState | null>(null)
+
+  const CATEGORIES = [
+    { value: 'savings', label: t('category.savings') },
+    { value: 'emergency_fund', label: t('category.emergency_fund') },
+    { value: 'holiday', label: t('category.holiday') },
+    { value: 'property', label: t('category.property') },
+    { value: 'retirement', label: t('category.retirement') },
+    { value: 'education', label: t('category.education') },
+    { value: 'other', label: t('category.other') },
+  ]
 
   const fetchCoach = async (goalId: string) => {
     if (coach?.goalId === goalId && coach.tip) return // already loaded
@@ -54,7 +57,7 @@ export default function GoalsPage() {
       const data = await res.json()
       setCoach({ goalId, loading: false, tip: data.tip, on_track: data.on_track, required_monthly: data.required_monthly, monthly_surplus: data.monthly_surplus })
     } catch {
-      setCoach(c => c ? { ...c, loading: false, tip: 'Could not load coaching tip right now.' } : null)
+      setCoach(c => c ? { ...c, loading: false, tip: t('coachErrorMessage') } : null)
     }
   }
 
@@ -85,21 +88,21 @@ export default function GoalsPage() {
   }
 
   const del = async (id: string) => {
-    if (!confirm('Delete goal?')) return
+    if (!confirm(t('deleteConfirm'))) return
     await fetch('/api/goals', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
   return (
     <div>
-      <Topbar title="Goals" subtitle={`${goals.length} goals`} userName={session?.user?.name ?? ''}
-        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add Goal</Button>} />
+      <Topbar title={t('title')} subtitle={`${goals.length} ${t('subtitle')}`} userName={session?.user?.name ?? ''}
+        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> {t('addGoal')}</Button>} />
       <div className="p-4 md:p-8 animate-fade-in">
         {goals.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
             <Target size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No goals yet</p>
-            <Button onClick={openAdd} size="sm" className="mt-4"><Plus size={14} /> Set a goal</Button>
+            <p className="text-slate-500 font-medium">{t('empty')}</p>
+            <Button onClick={openAdd} size="sm" className="mt-4"><Plus size={14} /> {t('setGoal')}</Button>
           </CardContent></Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -112,23 +115,23 @@ export default function GoalsPage() {
                       <p className="font-semibold text-slate-800">{g.name}</p>
                       <span className="text-xs font-bold text-indigo-500">{pct}%</span>
                     </div>
-                    <p className="text-xs text-slate-400 mb-3">{CATEGORIES.find(c => c.value === g.category)?.label}{g.target_date ? ` · By ${g.target_date}` : ''}</p>
+                    <p className="text-xs text-slate-400 mb-3">{CATEGORIES.find(c => c.value === g.category)?.label}{g.target_date ? ` · ${t('by')} ${g.target_date}` : ''}</p>
                     <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-3">
                       <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="font-semibold text-slate-700">{formatCurrency(Number(g.current_amount), g.currency)}</span>
-                      <span className="text-slate-400">of {formatCurrency(Number(g.target_amount), g.currency)}</span>
+                      <span className="text-slate-400">{` ${t('of')} `}{formatCurrency(Number(g.target_amount), g.currency)}</span>
                     </div>
                     <div className="flex gap-2 mt-4">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(g)}><Pencil size={13} /> Edit</Button>
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(g)}><Pencil size={13} /> {tc('edit')}</Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => coach?.goalId === g.id && coach.tip ? setCoach(null) : fetchCoach(g.id)}
                         className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50"
                       >
-                        <Sparkles size={13} /> Coach
+                        <Sparkles size={13} /> {t('coach')}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => del(g.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                     </div>
@@ -139,7 +142,7 @@ export default function GoalsPage() {
                         {coach.loading ? (
                           <div className="flex items-center gap-2 text-xs text-indigo-600">
                             <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                            Getting personalised coaching…
+                            {t('coachLoading')}
                           </div>
                         ) : (
                           <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
@@ -149,13 +152,13 @@ export default function GoalsPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-semibold text-indigo-700 mb-1">
-                                  {coach.on_track === null ? 'Goal Coach' : coach.on_track ? '✓ On track' : 'Needs attention'}
+                                  {coach.on_track === null ? t('coachTitle') : coach.on_track ? `✓ ${t('coachOnTrack')}` : t('coachNeedsAttention')}
                                 </p>
                                 <p className="text-xs text-indigo-800 leading-relaxed">{coach.tip}</p>
                                 {coach.required_monthly !== null && (
                                   <p className="text-xs text-indigo-500 mt-1">
-                                    Need to save: £{coach.required_monthly.toFixed(0)}/mo
-                                    {coach.monthly_surplus !== null && ` · Current surplus: £${coach.monthly_surplus.toFixed(0)}/mo`}
+                                    {`${t('needToSave')}: £${coach.required_monthly.toFixed(0)}/mo`}
+                                    {coach.monthly_surplus !== null && ` · ${t('currentSurplus')}: £${coach.monthly_surplus.toFixed(0)}/mo`}
                                   </p>
                                 )}
                               </div>
@@ -171,18 +174,18 @@ export default function GoalsPage() {
           </div>
         )}
       </div>
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit Goal' : 'New Goal'}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('editModal') : t('addModal')}>
         <div className="space-y-4">
-          <Input label="Goal name" placeholder="e.g. Emergency Fund" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          <Select label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
+          <Input label={t('form.goalName')} placeholder={t('form.goalNamePlaceholder')} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          <Select label={t('form.category')} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Target (£)" type="number" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} />
-            <Input label="Saved so far (£)" type="number" value={form.current_amount} onChange={e => setForm(f => ({ ...f, current_amount: e.target.value }))} />
+            <Input label={t('form.target')} type="number" value={form.target_amount} onChange={e => setForm(f => ({ ...f, target_amount: e.target.value }))} />
+            <Input label={t('form.savedSoFar')} type="number" value={form.current_amount} onChange={e => setForm(f => ({ ...f, current_amount: e.target.value }))} />
           </div>
-          <Input label="Target date (optional)" type="date" value={form.target_date} onChange={e => setForm(f => ({ ...f, target_date: e.target.value }))} />
+          <Input label={t('form.targetDate')} type="date" value={form.target_date} onChange={e => setForm(f => ({ ...f, target_date: e.target.value }))} />
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
-            <Button onClick={save} loading={loading} className="flex-1">{editing ? 'Save' : 'Create goal'}</Button>
+            <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">{tc('cancel')}</Button>
+            <Button onClick={save} loading={loading} className="flex-1">{editing ? tc('save') : t('addGoal')}</Button>
           </div>
         </div>
       </Modal>

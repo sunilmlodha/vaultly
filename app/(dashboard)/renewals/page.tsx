@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,26 +14,13 @@ import { formatCurrency, formatDate, getDaysUntil } from '@/lib/utils'
 import { Plus, RefreshCw, Trash2, Pencil, Sparkles, X, CheckCheck, Loader2 } from 'lucide-react'
 import type { Renewal, DetectedRecurring } from '@/lib/types'
 
-const NEGOTIATION_BADGE: Record<string, { label: string; variant: 'danger' | 'warning' | 'info' | 'default' }> = {
-  cancel:    { label: 'Cancel', variant: 'danger' },
-  negotiate: { label: 'Negotiate', variant: 'warning' },
-  switch:    { label: 'Switch', variant: 'info' },
-}
-
-const CATEGORIES = [
-  { value: 'subscription', label: 'Subscription' },
-  { value: 'insurance', label: 'Insurance' },
-  { value: 'utility', label: 'Utility' },
-  { value: 'broadband', label: 'Broadband' },
-  { value: 'mobile', label: 'Mobile' },
-  { value: 'other', label: 'Other' },
-]
-
 const blank = { name: '', category: 'subscription', amount: '', currency: 'GBP', renewal_date: '', provider: '', auto_renews: 'true' }
 
 export default function RenewalsPage() {
   const { data: session } = useSession()
   const router = useRouter()
+  const t = useTranslations('renewals')
+  const tc = useTranslations('common')
   const [items, setItems] = useState<Renewal[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Renewal | null>(null)
@@ -42,6 +30,21 @@ export default function RenewalsPage() {
   const [dismissedSuggestions, setDismissedSuggestions] = useState(false)
   const [approvingAll, setApprovingAll] = useState(false)
   const [approvingOne, setApprovingOne] = useState<string | null>(null)
+
+  const NEGOTIATION_BADGE: Record<string, { label: string; variant: 'danger' | 'warning' | 'info' | 'default' }> = {
+    cancel:    { label: t('negotiationStatus.cancel'), variant: 'danger' },
+    negotiate: { label: t('negotiationStatus.negotiate'), variant: 'warning' },
+    switch:    { label: t('negotiationStatus.switch'), variant: 'info' },
+  }
+
+  const CATEGORIES = [
+    { value: 'subscription', label: t('category.subscription') },
+    { value: 'insurance', label: t('category.insurance') },
+    { value: 'utility', label: t('category.utility') },
+    { value: 'broadband', label: t('category.broadband') },
+    { value: 'mobile', label: t('category.mobile') },
+    { value: 'other', label: t('category.other') },
+  ]
 
   const load = useCallback(async () => {
     const res = await fetch('/api/renewals')
@@ -106,7 +109,7 @@ export default function RenewalsPage() {
   }
 
   const del = async (id: string) => {
-    if (!confirm('Delete renewal?')) return
+    if (!confirm(t('deleteConfirm'))) return
     await fetch('/api/renewals', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
@@ -116,8 +119,8 @@ export default function RenewalsPage() {
 
   return (
     <div>
-      <Topbar title="Renewals" subtitle={`${items.length} tracked`} userName={session?.user?.name ?? ''}
-        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>} />
+      <Topbar title={t('title')} subtitle={`${items.length} ${t('subtitle')}`} userName={session?.user?.name ?? ''}
+        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> {tc('add')}</Button>} />
       <div className="p-4 md:p-8 animate-fade-in space-y-6">
 
         {/* Recurring suggestions banner */}
@@ -127,7 +130,7 @@ export default function RenewalsPage() {
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base font-semibold text-emerald-800 flex items-center gap-2">
                   <Sparkles size={16} className="text-emerald-500" />
-                  {suggestions.length} recurring payment{suggestions.length !== 1 ? 's' : ''} detected from your bank
+                  {`${suggestions.length} ${suggestions.length !== 1 ? t('detectedFromBankPlural') : t('detectedFromBank')}`}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
@@ -141,7 +144,7 @@ export default function RenewalsPage() {
                     ) : (
                       <CheckCheck size={13} />
                     )}
-                    Add all
+                    {tc('addAll')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -150,7 +153,7 @@ export default function RenewalsPage() {
                     className="text-emerald-700 hover:bg-emerald-100"
                   >
                     <X size={13} />
-                    Dismiss
+                    {tc('dismiss')}
                   </Button>
                 </div>
               </div>
@@ -164,12 +167,12 @@ export default function RenewalsPage() {
                   <div className="min-w-0">
                     <p className="font-medium text-slate-800 text-sm">{s.name}</p>
                     <p className="text-xs text-slate-400">
-                      {formatCurrency(s.amount, s.currency)}/mo
+                      {formatCurrency(s.amount, s.currency)}{tc('perMonth')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="default" className="text-[10px]">
-                      {s.transaction_count} transactions
+                      {s.transaction_count} {tc('transactions')}
                     </Badge>
                     <Button
                       size="sm"
@@ -182,7 +185,7 @@ export default function RenewalsPage() {
                       ) : (
                         <Plus size={12} />
                       )}
-                      Add
+                      {tc('add')}
                     </Button>
                   </div>
                 </div>
@@ -195,8 +198,8 @@ export default function RenewalsPage() {
         {items.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
             <RefreshCw size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No renewals tracked</p>
-            <Button onClick={openAdd} size="sm" className="mt-4"><Plus size={14} /> Add renewal</Button>
+            <p className="text-slate-500 font-medium">{t('empty')}</p>
+            <Button onClick={openAdd} size="sm" className="mt-4"><Plus size={14} /> {t('addRenewal')}</Button>
           </CardContent></Card>
         ) : (
           <div className="space-y-3">
@@ -209,15 +212,15 @@ export default function RenewalsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-slate-800">{r.name}</p>
                         <Badge variant="default">{r.category}</Badge>
-                        {r.auto_renews && <Badge variant="info">Auto-renews</Badge>}
+                        {r.auto_renews && <Badge variant="info">{t('autoRenews')}</Badge>}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">{r.provider && `${r.provider} · `}Due {formatDate(r.renewal_date)}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{r.provider && `${r.provider} · `}{t('due')} {formatDate(r.renewal_date)}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
                         <p className="font-bold text-slate-800">{formatCurrency(Number(r.amount), r.currency)}</p>
                         <Badge variant={getDaysVariant(days)}>
-                          {days < 0 ? 'Overdue' : days === 0 ? 'Today' : `${days}d`}
+                          {days < 0 ? t('overdue') : days === 0 ? t('today') : `${days}d`}
                         </Badge>
                       </div>
                       {/* Negotiation status badge */}
@@ -232,7 +235,7 @@ export default function RenewalsPage() {
                           size="sm"
                           onClick={() => router.push(`/renewals/negotiate/${r.id}`)}
                           className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                          title="AI Negotiation Agent"
+                          title={t('aiNegotiation')}
                         >
                           <Sparkles size={13} />
                         </Button>
@@ -248,19 +251,19 @@ export default function RenewalsPage() {
         )}
         </div>
       </div>
-      <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit Renewal' : 'Add Renewal'}>
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t('editModal') : t('addModal')}>
         <div className="space-y-4">
-          <Input label="Name" placeholder="e.g. Netflix" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-          <Select label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
+          <Input label={t('form.name')} placeholder={t('form.namePlaceholder')} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          <Select label={t('form.category')} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Amount (£)" type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
-            <Input label="Renewal date" type="date" value={form.renewal_date} onChange={e => setForm(f => ({ ...f, renewal_date: e.target.value }))} />
+            <Input label={t('form.amount')} type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+            <Input label={t('form.renewalDate')} type="date" value={form.renewal_date} onChange={e => setForm(f => ({ ...f, renewal_date: e.target.value }))} />
           </div>
-          <Input label="Provider (optional)" value={form.provider} onChange={e => setForm(f => ({ ...f, provider: e.target.value }))} />
-          <Select label="Auto-renews?" value={form.auto_renews} onChange={e => setForm(f => ({ ...f, auto_renews: e.target.value }))} options={[{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }]} />
+          <Input label={t('form.provider')} value={form.provider} onChange={e => setForm(f => ({ ...f, provider: e.target.value }))} />
+          <Select label={t('form.autoRenews')} value={form.auto_renews} onChange={e => setForm(f => ({ ...f, auto_renews: e.target.value }))} options={[{ value: 'true', label: t('autoRenewsOptions.yes') }, { value: 'false', label: t('autoRenewsOptions.no') }]} />
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
-            <Button onClick={save} loading={loading} className="flex-1">{editing ? 'Save' : 'Add'}</Button>
+            <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">{tc('cancel')}</Button>
+            <Button onClick={save} loading={loading} className="flex-1">{editing ? tc('save') : t('addRenewal')}</Button>
           </div>
         </div>
       </Modal>

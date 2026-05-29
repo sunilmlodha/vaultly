@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,8 @@ const LANGUAGES = [
 export default function SettingsPage() {
   const { data: session } = useSession()
   const router = useRouter()
+  const t = useTranslations('settings')
+  const tc = useTranslations('common')
 
   const [profile, setProfile] = useState({ full_name: '', email: '', currency: 'GBP', created_at: '' })
   const [saving, setSaving] = useState(false)
@@ -84,31 +87,31 @@ export default function SettingsPage() {
       router.push('/?deleted=1')
     } else {
       setDeleting(false)
-      alert('Deletion failed — please try again or contact support.')
+      alert(t('deleteModal.deletionFailed'))
     }
   }
 
   return (
     <div>
-      <Topbar title="Settings" subtitle="Account, security & preferences" userName={session?.user?.name ?? ''} />
+      <Topbar title={t('title')} subtitle={t('subtitle')} userName={session?.user?.name ?? ''} />
       <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6 animate-fade-in">
 
         {/* Profile */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <User size={16} className="text-indigo-500" /> Profile
+              <User size={16} className="text-indigo-500" /> {t('profile')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              label="Full name"
+              label={t('fullName')}
               value={profile.full_name}
               onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))}
             />
-            <Input label="Email address" value={profile.email} disabled />
+            <Input label={t('email')} value={profile.email} disabled />
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Default currency</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('defaultCurrency')}</label>
               <div className="flex flex-wrap gap-2">
                 {CURRENCIES.map(c => (
                   <button
@@ -126,10 +129,10 @@ export default function SettingsPage() {
               </div>
             </div>
             {profile.created_at && (
-              <p className="text-xs text-slate-400">Account created {new Date(profile.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p className="text-xs text-slate-400">{`${t('accountCreated')} `}{new Date(profile.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             )}
             <Button onClick={saveProfile} loading={saving} size="sm">
-              {saved ? <><CheckCircle size={13} /> Saved</> : 'Save changes'}
+              {saved ? <><CheckCircle size={13} /> {t('saved')}</> : t('saveChanges')}
             </Button>
           </CardContent>
         </Card>
@@ -138,7 +141,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Globe size={16} className="text-indigo-500" /> Language
+              <Globe size={16} className="text-indigo-500" /> {t('language')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -159,7 +162,7 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-3">More languages coming soon. Community translations welcome.</p>
+            <p className="text-xs text-slate-400 mt-3">{t('moreLanguagesSoon')}</p>
           </CardContent>
         </Card>
 
@@ -167,7 +170,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Shield size={16} className="text-indigo-500" /> Security
+              <Shield size={16} className="text-indigo-500" /> {t('security')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -177,8 +180,8 @@ export default function SettingsPage() {
             >
               <Lock size={16} className="text-slate-500" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700">App lock</p>
-                <p className="text-xs text-slate-400">{pinSet ? 'PIN set — biometrics available' : 'Set a PIN to lock the app'}</p>
+                <p className="text-sm font-medium text-slate-700">{t('appLock')}</p>
+                <p className="text-xs text-slate-400">{pinSet ? t('pinSet') : t('setPinPrompt')}</p>
               </div>
               <ChevronRight size={16} className="text-slate-400" />
             </button>
@@ -188,8 +191,8 @@ export default function SettingsPage() {
             >
               <LogOut size={16} className="text-slate-500" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700">Sign out</p>
-                <p className="text-xs text-slate-400">Sign out from all devices</p>
+                <p className="text-sm font-medium text-slate-700">{t('signOut')}</p>
+                <p className="text-xs text-slate-400">{t('signOutDesc')}</p>
               </div>
               <ChevronRight size={16} className="text-slate-400" />
             </button>
@@ -200,17 +203,17 @@ export default function SettingsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Download size={16} className="text-indigo-500" /> Your Data
+              <Download size={16} className="text-indigo-500" /> {t('yourData')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-slate-600">
-              Download a complete export of all your Vaultly data — assets, liabilities, transactions, goals, renewals, and documents metadata.
+              {t('gdprDesc')}
             </p>
-            <p className="text-xs text-slate-400">Your right under UK GDPR Art. 20 / EU GDPR Art. 20 / India DPDP Act 2023 S.12 (data portability).</p>
+            <p className="text-xs text-slate-400">{t('gdprLegal')}</p>
             <a href="/api/account/export" download>
               <Button variant="outline" size="sm" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-                <Download size={13} /> Download my data (JSON)
+                <Download size={13} /> {t('downloadData')}
               </Button>
             </a>
           </CardContent>
@@ -220,21 +223,21 @@ export default function SettingsPage() {
         <Card className="border-red-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-red-600">
-              <Trash2 size={16} /> Danger zone
+              <Trash2 size={16} /> {t('dangerZone')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-slate-600">
-              Permanently delete your account and all associated data — assets, transactions, documents, goals, and connected banks. This action cannot be undone.
+              {t('dangerDesc')}
             </p>
-            <p className="text-xs text-slate-400">Your rights: you can request data deletion at any time under UK GDPR Article 17, EU GDPR Article 17, and India DPDP Act 2023 Section 12.</p>
+            <p className="text-xs text-slate-400">{t('dangerLegal')}</p>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setShowDeleteModal(true)}
               className="text-red-600 border-red-200 hover:bg-red-50"
             >
-              <Trash2 size={13} /> Delete my account &amp; all data
+              <Trash2 size={13} /> {t('deleteAccount')}
             </Button>
           </CardContent>
         </Card>
@@ -249,28 +252,28 @@ export default function SettingsPage() {
                 <AlertTriangle size={18} className="text-red-600" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-800">Delete account?</h2>
-                <p className="text-sm text-slate-500">This cannot be undone.</p>
+                <h2 className="font-bold text-slate-800">{t('deleteModal.title')}</h2>
+                <p className="text-sm text-slate-500">{t('deleteModal.cannotBeUndone')}</p>
               </div>
             </div>
             <p className="text-sm text-slate-600">
-              All your data will be permanently deleted: assets, liabilities, transactions, documents, goals, renewals, and bank connections.
+              {t('deleteModal.desc')}
             </p>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Type <span className="font-mono bg-slate-100 px-1 rounded">delete my account</span> to confirm
+                {t('deleteModal.typeToConfirm')} <span className="font-mono bg-slate-100 px-1 rounded">{t('deleteModal.confirmPhrase')}</span> {t('deleteModal.toConfirm')}
               </label>
               <input
                 type="text"
                 value={deleteConfirm}
                 onChange={e => setDeleteConfirm(e.target.value)}
-                placeholder="delete my account"
+                placeholder={t('deleteModal.confirmPlaceholder')}
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
               />
             </div>
             <div className="flex gap-3">
               <Button variant="secondary" onClick={() => { setShowDeleteModal(false); setDeleteConfirm('') }} className="flex-1">
-                Cancel
+                {tc('cancel')}
               </Button>
               <Button
                 onClick={deleteAccount}
@@ -278,7 +281,7 @@ export default function SettingsPage() {
                 disabled={deleteConfirm.toLowerCase() !== 'delete my account'}
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
-                <Trash2 size={13} /> Delete everything
+                <Trash2 size={13} /> {t('deleteModal.deleteEverything')}
               </Button>
             </div>
           </div>

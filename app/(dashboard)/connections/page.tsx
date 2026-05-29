@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,8 @@ function getDaysUntil(dateStr: string): number {
 
 export default function ConnectionsPage() {
   const { data: session } = useSession()
+  const t = useTranslations('connections')
+  const tc = useTranslations('common')
   const [connections, setConnections] = useState<OpenBankingConnection[]>([])
   const [suggestions, setSuggestions] = useState<DetectedRecurring[]>([])
   const [syncing, setSyncing] = useState<string | null>(null)
@@ -77,7 +80,7 @@ export default function ConnectionsPage() {
   }
 
   const disconnect = async (id: string, name: string) => {
-    if (!confirm(`Disconnect ${name}? Your synced accounts will remain but stop updating.`)) return
+    if (!confirm(`Disconnect ${name}? ${t('disconnectConfirm')}`)) return
     await fetch(`/api/connections/${id}`, { method: 'DELETE' })
     load()
   }
@@ -119,21 +122,21 @@ export default function ConnectionsPage() {
   const statusBadge = (status: OpenBankingConnection['status']) => {
     switch (status) {
       case 'active':
-        return <Badge variant="success">Active</Badge>
+        return <Badge variant="success">{t('status.active')}</Badge>
       case 'expired':
-        return <Badge variant="danger">Expired</Badge>
+        return <Badge variant="danger">{t('status.expired')}</Badge>
       case 'revoked':
-        return <Badge variant="danger">Revoked</Badge>
+        return <Badge variant="danger">{t('status.revoked')}</Badge>
       case 'error':
-        return <Badge variant="warning">Error</Badge>
+        return <Badge variant="warning">{t('status.error')}</Badge>
     }
   }
 
   return (
     <div>
       <Topbar
-        title="Connected Banks"
-        subtitle={`${connections.length} connection${connections.length !== 1 ? 's' : ''}`}
+        title={t('title')}
+        subtitle={`${connections.length} ${connections.length !== 1 ? t('subtitlePlural') : t('subtitle')}`}
         userName={session?.user?.name ?? ''}
         actions={
           <Button onClick={connectBank} disabled={connecting} size="sm">
@@ -142,7 +145,7 @@ export default function ConnectionsPage() {
             ) : (
               <Building2 size={14} />
             )}
-            Connect a bank
+            {t('connectBank')}
           </Button>
         }
       />
@@ -156,11 +159,11 @@ export default function ConnectionsPage() {
               <AlertTriangle size={18} className="text-amber-500 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-amber-800 text-sm">
-                  Consent expiring soon
+                  {t('consentExpiring')}
                 </p>
                 <p className="text-amber-700 text-xs mt-0.5">
                   {expiringConnections.map((c) => c.bank_name).join(', ')}{' '}
-                  {expiringConnections.length === 1 ? 'needs' : 'need'} re-authorisation within 14 days.
+                  {expiringConnections.length === 1 ? t('consentExpiringDesc') : t('consentExpiringDescPlural')}
                 </p>
               </div>
             </CardContent>
@@ -178,13 +181,13 @@ export default function ConnectionsPage() {
               <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
                 <Building2 size={28} className="text-indigo-400" />
               </div>
-              <p className="text-slate-600 font-semibold text-lg mb-1">No banks connected yet</p>
+              <p className="text-slate-600 font-semibold text-lg mb-1">{t('empty')}</p>
               <p className="text-slate-400 text-sm mb-5 max-w-xs mx-auto">
-                Connect your bank to get live balances and automatic renewal detection
+                {t('emptyDesc')}
               </p>
               <Button onClick={connectBank} disabled={connecting}>
                 {connecting ? <Loader2 size={14} className="animate-spin" /> : <Building2 size={14} />}
-                Connect a bank
+                {t('connectBank')}
               </Button>
             </CardContent>
           </Card>
@@ -217,7 +220,7 @@ export default function ConnectionsPage() {
                           </div>
                           {c.account_count !== undefined && (
                             <p className="text-xs text-slate-400 mt-0.5">
-                              {c.account_count} account{c.account_count !== 1 ? 's' : ''} linked
+                              {`${c.account_count} ${c.account_count !== 1 ? t('accountsLinked') : t('accountLinked')}`}
                             </p>
                           )}
                         </div>
@@ -227,11 +230,11 @@ export default function ConnectionsPage() {
                       <div className="text-sm space-y-0.5 shrink-0">
                         {c.last_synced_at && (
                           <p className="text-xs text-slate-400">
-                            Last synced: {formatDate(c.last_synced_at)}
+                            {`${t('lastSynced')}: `}{formatDate(c.last_synced_at)}
                           </p>
                         )}
                         <p className={`text-xs ${consentSoon ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
-                          Consent expires: {formatDate(c.consent_expires_at)}
+                          {`${t('consentExpires')}: `}{formatDate(c.consent_expires_at)}
                           {consentSoon && ` (${consentDays}d)`}
                         </p>
                       </div>
@@ -249,14 +252,14 @@ export default function ConnectionsPage() {
                           ) : (
                             <RefreshCw size={13} />
                           )}
-                          Sync
+                          {tc('sync')}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={reauthorise}
                         >
-                          Re-authorise
+                          {t('reauthorise')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -264,7 +267,7 @@ export default function ConnectionsPage() {
                           className="text-red-400 hover:text-red-600 hover:bg-red-50"
                           onClick={() => disconnect(c.id, c.bank_name)}
                         >
-                          Disconnect
+                          {tc('disconnect')}
                         </Button>
                       </div>
                     </div>
@@ -282,7 +285,7 @@ export default function ConnectionsPage() {
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base font-semibold text-emerald-800 flex items-center gap-2">
                   <Sparkles size={16} className="text-emerald-500" />
-                  {suggestions.length} recurring payment{suggestions.length !== 1 ? 's' : ''} detected
+                  {`${suggestions.length} ${suggestions.length !== 1 ? t('recurringDetectedPlural') : t('recurringDetected')}`}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
@@ -296,7 +299,7 @@ export default function ConnectionsPage() {
                     ) : (
                       <CheckCheck size={13} />
                     )}
-                    Add all
+                    {tc('addAll')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -305,7 +308,7 @@ export default function ConnectionsPage() {
                     className="text-emerald-700 hover:bg-emerald-100"
                   >
                     <X size={13} />
-                    Dismiss
+                    {tc('dismiss')}
                   </Button>
                 </div>
               </div>
@@ -320,13 +323,13 @@ export default function ConnectionsPage() {
                     <div>
                       <p className="font-medium text-slate-800 text-sm">{s.name}</p>
                       <p className="text-xs text-slate-400">
-                        {formatCurrency(s.amount, s.currency)}/mo
+                        {formatCurrency(s.amount, s.currency)}{tc('perMonth')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="default" className="text-[10px]">
-                      {s.transaction_count} transactions
+                      {s.transaction_count} {tc('transactions')}
                     </Badge>
                     <Button
                       size="sm"
@@ -339,7 +342,7 @@ export default function ConnectionsPage() {
                       ) : (
                         <Plus size={12} />
                       )}
-                      Add
+                      {tc('add')}
                     </Button>
                   </div>
                 </div>
