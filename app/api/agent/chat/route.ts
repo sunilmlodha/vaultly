@@ -5,6 +5,8 @@ import { streamAgentResponse, extractProbableAssets } from '@/lib/claude/agent'
 import { randomUUID } from 'crypto'
 import type { AgentMessage } from '@/lib/types'
 
+export const maxDuration = 60 // Allow up to 60s for Claude streaming
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
