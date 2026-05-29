@@ -32,6 +32,7 @@ export default function DocumentsPage() {
   const [form, setForm] = useState(blank)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/documents')
@@ -41,15 +42,33 @@ export default function DocumentsPage() {
 
   useEffect(() => { load() }, [load])
 
+  const fmt = (bytes: number) => bytes < 1024 ? `${bytes}B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(0)}KB` : `${(bytes / 1048576).toFixed(1)}MB`
+  const MAX_SIZE = 4 * 1024 * 1024 // 4MB — stay under Vercel's 4.5MB serverless limit
+
   const upload = async () => {
     if (!file) return
+    if (file.size > MAX_SIZE) {
+      setError(`File is too large (${fmt(file.size)}). Maximum size is 4MB.`)
+      return
+    }
     setLoading(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('name', form.name || file.name)
-    fd.append('category', form.category)
-    await fetch('/api/documents', { method: 'POST', body: fd })
-    setOpen(false); setLoading(false); setFile(null); setForm(blank); load()
+    setError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('name', form.name || file.name)
+      fd.append('category', form.category)
+      const res = await fetch('/api/documents', { method: 'POST', body: fd })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || `Upload failed (${res.status})`)
+      }
+      setOpen(false); setFile(null); setForm(blank); load()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const del = async (id: string) => {
@@ -57,8 +76,6 @@ export default function DocumentsPage() {
     await fetch('/api/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
-
-  const fmt = (bytes: number) => bytes < 1024 ? `${bytes}B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(0)}KB` : `${(bytes / 1048576).toFixed(1)}MB`
 
   return (
     <div>
@@ -101,17 +118,22 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
-      <Modal open={open} onClose={() => setOpen(false)} title="Upload Document">
+      <Modal open={open} onClose={() => { setOpen(false); setError(null) }} title="Upload Document">
         <div className="space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">File</label>
-            <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} accept=".pdf,.doc,.docx,.jpg,.png"
+            <label className="block text-sm font-medium text-slate-700">File <span className="text-slate-400 font-normal">(max 4MB)</span></label>
+            <input type="file" onChange={e => { setFile(e.target.files?.[0] || null); setError(null) }} accept=".pdf,.doc,.docx,.jpg,.png"
               className="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-600 file:font-medium hover:file:bg-indigo-100 transition-all" />
           </div>
           <Input label="Document name (optional)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Leave blank to use filename" />
           <Select label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
+            <Button variant="secondary" onClick={() => { setOpen(false); setError(null) }} className="flex-1">Cancel</Button>
             <Button onClick={upload} loading={loading} disabled={!file} className="flex-1">Upload to Vault</Button>
           </div>
         </div>

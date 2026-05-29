@@ -4,6 +4,8 @@ import { db } from '@/lib/db'
 import { uploadDocument, deleteDocument } from '@/lib/blob'
 import { randomUUID } from 'crypto'
 
+export const maxDuration = 60 // Allow up to 60s for large file uploads
+
 export async function GET() {
   const session = await auth()
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
