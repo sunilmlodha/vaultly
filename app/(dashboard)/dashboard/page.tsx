@@ -17,13 +17,17 @@ export default async function DashboardPage() {
 
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [assetsRes, liabRes, renewalsRes, goalsRes, connectionsRes, expiringRes] = await Promise.all([
+  const [assetsRes, liabRes, renewalsRes, goalsRes] = await Promise.all([
     db.execute({ sql: 'SELECT * FROM assets WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM liabilities WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM renewals WHERE household_id = ? ORDER BY renewal_date', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM goals WHERE household_id = ?', args: [hid] }),
-    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active'", args: [hid] }),
-    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active' AND consent_expires_at < ?", args: [hid, sevenDaysFromNow] }),
+  ])
+
+  // OB queries are isolated — if they fail the rest of the page still renders
+  const [connectionsRes, expiringRes] = await Promise.all([
+    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active'", args: [hid] }).catch(() => ({ rows: [{ cnt: 0 }] })),
+    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active' AND consent_expires_at < ?", args: [hid, sevenDaysFromNow] }).catch(() => ({ rows: [{ cnt: 0 }] })),
   ])
 
   const connectionsCount = Number(connectionsRes.rows[0]?.cnt ?? 0)

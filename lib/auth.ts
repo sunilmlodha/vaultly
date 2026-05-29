@@ -2,8 +2,13 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { db } from './db'
+import { authConfig } from './auth.config'
+
+// Full auth — uses bcryptjs + db (Node.js runtime only)
+// Do NOT import this in middleware.ts — use lib/auth.config.ts there instead
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -36,24 +41,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-        token.householdId = (user as { householdId?: string }).householdId
-      }
-      return token
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        ;(session.user as { householdId?: string }).householdId = token.householdId as string
-      }
-      return session
-    },
-  },
-  pages: {
-    signIn: '/login',
-  },
-  session: { strategy: 'jwt' },
 })
