@@ -151,6 +151,15 @@ export default function AgentPage() {
           } else if (data.type === 'probable_assets') {
             setProbableAssets(data.assets)
             setPhase('complete')
+          } else if (data.type === 'error') {
+            const msg = data.message?.includes('credit balance') || data.message?.includes('billing')
+              ? 'The AI service is temporarily unavailable (billing issue). Please contact support or try again later.'
+              : 'Sorry, something went wrong. Please try again.'
+            setMessages(prev => {
+              const copy = [...prev]
+              copy[copy.length - 1] = { ...copy[copy.length - 1], content: msg }
+              return copy
+            })
           }
         }
       }
