@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Wallet, CreditCard, Users, RefreshCw,
-  FileText, Target, Search, LogOut, Vault, Landmark, BarChart3, Settings, TrendingUp
+  FileText, Target, Search, LogOut, Vault, Landmark, BarChart3, Settings, TrendingUp, UserCircle
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -25,6 +25,7 @@ export function Sidebar() {
     { href: '/documents', label: t('documents'), icon: FileText },
     { href: '/family', label: t('family'), icon: Users },
     { href: '/agent', label: t('agent'), icon: Search, highlight: true },
+    { href: '/profile', label: 'Profile', icon: UserCircle },
     { href: '/settings', label: t('settings'), icon: Settings },
   ]
 

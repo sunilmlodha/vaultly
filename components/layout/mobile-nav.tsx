@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Wallet, RefreshCw, Search, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Wallet, RefreshCw, Search, BarChart3, UserCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 export function MobileNav() {
@@ -14,7 +14,7 @@ export function MobileNav() {
     { href: '/assets', label: t('assets'), icon: Wallet },
     { href: '/spending', label: t('spending'), icon: BarChart3 },
     { href: '/agent', label: t('agent'), icon: Search },
-    { href: '/renewals', label: t('renewals'), icon: RefreshCw },
+    { href: '/profile', label: 'Profile', icon: UserCircle },
   ]
 
   return (

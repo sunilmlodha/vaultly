@@ -65,7 +65,7 @@ describe('<Button />', () => {
   })
 
   it('renders all variants', () => {
-    const variants = ['default', 'secondary', 'outline', 'ghost'] as const
+    const variants = ['primary', 'secondary', 'outline', 'ghost'] as const
     for (const v of variants) {
       expect(() => render(<Button variant={v}>{v}</Button>)).not.toThrow()
     }

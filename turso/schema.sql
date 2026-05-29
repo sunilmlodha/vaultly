@@ -5,14 +5,30 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT,                          -- NULL for OAuth-only users
   full_name TEXT NOT NULL DEFAULT '',
   avatar_url TEXT,
+  phone TEXT,
+  bio TEXT,
+  date_of_birth TEXT,
+  notification_prefs TEXT NOT NULL DEFAULT '{}',
   currency TEXT NOT NULL DEFAULT 'GBP',
   household_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS oauth_accounts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  provider_account_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (provider, provider_account_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_accounts_user ON oauth_accounts(user_id);
 
 CREATE TABLE IF NOT EXISTS households (
   id TEXT PRIMARY KEY,

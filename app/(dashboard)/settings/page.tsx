@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   User, Globe, Shield, Trash2, LogOut, CheckCircle,
-  AlertTriangle, ChevronRight, Lock, Download,
+  AlertTriangle, ChevronRight, Lock, Download, UserCircle,
 } from 'lucide-react'
 
 const CURRENCIES = ['GBP', 'EUR', 'USD', 'INR', 'AED', 'SGD', 'AUD', 'CAD']
@@ -95,6 +95,22 @@ export default function SettingsPage() {
     <div>
       <Topbar title={t('title')} subtitle={t('subtitle')} userName={session?.user?.name ?? ''} />
       <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6 animate-fade-in">
+
+        {/* Profile shortcut */}
+        <button
+          onClick={() => router.push('/profile')}
+          className="w-full flex items-center gap-4 p-5 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 hover:border-indigo-300 transition-all text-left"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center shrink-0">
+            <UserCircle size={22} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-800">{session?.user?.name || 'My Profile'}</p>
+            <p className="text-xs text-slate-500">{session?.user?.email}</p>
+            <p className="text-xs text-indigo-500 mt-0.5">Edit photo, bio, phone &amp; notifications →</p>
+          </div>
+          <ChevronRight size={18} className="text-slate-400 shrink-0" />
+        </button>
 
         {/* Profile */}
         <Card>
