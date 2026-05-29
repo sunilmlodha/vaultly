@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,48 +24,51 @@ const CATEGORIES = [
 const blank = { name: '', category: 'subscription', amount: '', currency: 'GBP', renewal_date: '', provider: '', auto_renews: 'true' }
 
 export default function RenewalsPage() {
+  const { data: session } = useSession()
   const [items, setItems] = useState<Renewal[]>([])
-  const [profile, setProfile] = useState<{ id: string; household_id: string; full_name: string } | null>(null)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Renewal | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setProfile(p)
-    const { data } = await supabase.from('renewals').select('*').eq('household_id', p.household_id).order('renewal_date')
-    setItems(data || [])
-  }, [supabase])
+    const res = await fetch('/api/renewals')
+    const { renewals } = await res.json()
+    setItems(renewals || [])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
   const openAdd = () => { setEditing(null); setForm(blank); setOpen(true) }
-  const openEdit = (r: Renewal) => { setEditing(r); setForm({ name: r.name, category: r.category, amount: String(r.amount), currency: r.currency, renewal_date: r.renewal_date, provider: r.provider || '', auto_renews: String(r.auto_renews) }); setOpen(true) }
+  const openEdit = (r: Renewal) => {
+    setEditing(r)
+    setForm({ name: r.name, category: r.category, amount: String(r.amount), currency: r.currency, renewal_date: r.renewal_date, provider: r.provider || '', auto_renews: String(r.auto_renews) })
+    setOpen(true)
+  }
 
   const save = async () => {
-    if (!profile) return
     setLoading(true)
-    const payload = { name: form.name, category: form.category, amount: parseFloat(form.amount) || 0, currency: form.currency, renewal_date: form.renewal_date, provider: form.provider, auto_renews: form.auto_renews === 'true', user_id: profile.id, household_id: profile.household_id }
-    if (editing) await supabase.from('renewals').update(payload).eq('id', editing.id)
-    else await supabase.from('renewals').insert(payload)
+    const payload = { name: form.name, category: form.category, amount: parseFloat(form.amount) || 0, currency: form.currency, renewal_date: form.renewal_date, provider: form.provider, auto_renews: form.auto_renews === 'true' }
+    if (editing) {
+      await fetch('/api/renewals', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...payload }) })
+    } else {
+      await fetch('/api/renewals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    }
     setOpen(false); setLoading(false); load()
   }
 
   const del = async (id: string) => {
     if (!confirm('Delete renewal?')) return
-    await supabase.from('renewals').delete().eq('id', id)
+    await fetch('/api/renewals', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
-  const getDaysVariant = (days: number) => days <= 7 ? 'danger' : days <= 14 ? 'warning' : days <= 30 ? 'info' : 'default'
+  const getDaysVariant = (days: number): 'danger' | 'warning' | 'info' | 'default' =>
+    days <= 7 ? 'danger' : days <= 14 ? 'warning' : days <= 30 ? 'info' : 'default'
 
   return (
     <div>
-      <Topbar title="Renewals" subtitle={`${items.length} tracked`} userName={profile?.full_name}
+      <Topbar title="Renewals" subtitle={`${items.length} tracked`} userName={session?.user?.name ?? ''}
         actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>} />
       <div className="p-4 md:p-8 animate-fade-in">
         {items.length === 0 ? (
@@ -91,8 +94,8 @@ export default function RenewalsPage() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <p className="font-bold text-slate-800">{formatCurrency(r.amount, r.currency)}</p>
-                        <Badge variant={getDaysVariant(days) as 'danger' | 'warning' | 'info' | 'default'}>
+                        <p className="font-bold text-slate-800">{formatCurrency(Number(r.amount), r.currency)}</p>
+                        <Badge variant={getDaysVariant(days)}>
                           {days < 0 ? 'Overdue' : days === 0 ? 'Today' : `${days}d`}
                         </Badge>
                       </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
 import { FileText, Plus, Trash2, Download } from 'lucide-react'
-import type { Document } from '@/lib/types'
+
+interface Doc { id: string; name: string; category: string; blob_url: string; file_size: number; created_at: string }
 
 const CATEGORIES = [
   { value: 'pension_statement', label: 'Pension Statement' },
@@ -22,44 +23,38 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ]
 
-const blank = { name: '', category: 'other', notes: '' }
+const blank = { name: '', category: 'other' }
 
 export default function DocumentsPage() {
-  const [docs, setDocs] = useState<Document[]>([])
-  const [profile, setProfile] = useState<{ id: string; household_id: string; full_name: string } | null>(null)
+  const { data: session } = useSession()
+  const [docs, setDocs] = useState<Doc[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(blank)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setProfile(p)
-    const { data } = await supabase.from('documents').select('*').eq('household_id', p.household_id).order('created_at', { ascending: false })
-    setDocs(data || [])
-  }, [supabase])
+    const res = await fetch('/api/documents')
+    const { documents } = await res.json()
+    setDocs(documents || [])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
   const upload = async () => {
-    if (!profile || !file) return
+    if (!file) return
     setLoading(true)
-    const path = `${profile.household_id}/${Date.now()}_${file.name}`
-    const { data: uploadData } = await supabase.storage.from('documents').upload(path, file)
-    if (!uploadData) { setLoading(false); return }
-    const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
-    await supabase.from('documents').insert({ name: form.name || file.name, category: form.category, file_url: publicUrl, file_size: file.size, notes: form.notes, user_id: profile.id, household_id: profile.household_id })
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('name', form.name || file.name)
+    fd.append('category', form.category)
+    await fetch('/api/documents', { method: 'POST', body: fd })
     setOpen(false); setLoading(false); setFile(null); setForm(blank); load()
   }
 
-  const del = async (id: string, fileUrl: string) => {
+  const del = async (id: string) => {
     if (!confirm('Delete document?')) return
-    await supabase.from('documents').delete().eq('id', id)
-    const path = fileUrl.split('/documents/')[1]
-    if (path) await supabase.storage.from('documents').remove([path])
+    await fetch('/api/documents', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
@@ -67,7 +62,7 @@ export default function DocumentsPage() {
 
   return (
     <div>
-      <Topbar title="Documents" subtitle={`${docs.length} stored`} userName={profile?.full_name}
+      <Topbar title="Documents" subtitle={`${docs.length} stored · Vercel Blob`} userName={session?.user?.name ?? ''}
         actions={<Button onClick={() => setOpen(true)} size="sm"><Plus size={14} /> Upload</Button>} />
       <div className="p-4 md:p-8 animate-fade-in">
         {docs.length === 0 ? (
@@ -79,7 +74,7 @@ export default function DocumentsPage() {
           </CardContent></Card>
         ) : (
           <div className="space-y-3">
-            {docs.map((d) => (
+            {docs.map(d => (
               <Card key={d.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="py-4 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -95,10 +90,10 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <a href={d.file_url} target="_blank" rel="noopener noreferrer">
+                    <a href={d.blob_url} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm"><Download size={14} /></Button>
                     </a>
-                    <Button variant="ghost" size="sm" onClick={() => del(d.id, d.file_url)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => del(d.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -117,7 +112,7 @@ export default function DocumentsPage() {
           <Select label="Category" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} />
           <div className="flex gap-3 pt-2">
             <Button variant="secondary" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
-            <Button onClick={upload} loading={loading} disabled={!file} className="flex-1">Upload</Button>
+            <Button onClick={upload} loading={loading} disabled={!file} className="flex-1">Upload to Vault</Button>
           </div>
         </div>
       </Modal>

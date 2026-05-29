@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -87,17 +87,12 @@ export default function AgentPage() {
   const [workflowId, setWorkflowId] = useState<string | null>(null)
   const [probableAssets, setProbableAssets] = useState<ProbableAsset[]>([])
   const [phase, setPhase] = useState<'intake' | 'inference' | 'complete'>('intake')
-  const [profile, setProfile] = useState<{ full_name: string } | null>(null)
+  const { data: session } = useSession()
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: p } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-      setProfile(p)
       // Load existing workflow
       const res = await fetch('/api/agent/chat')
       const { workflow } = await res.json() as { workflow: AgentWorkflow | null }
@@ -109,7 +104,7 @@ export default function AgentPage() {
       }
     }
     load()
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -186,7 +181,7 @@ export default function AgentPage() {
       <Topbar
         title="Asset Recovery Agent"
         subtitle="AI-powered dormant pension & account finder"
-        userName={profile?.full_name}
+        userName={session?.user?.name ?? ''}
         actions={
           <Button variant="ghost" size="sm" onClick={reset}>
             <RotateCcw size={14} /> New session

@@ -6,8 +6,7 @@ import {
   LayoutDashboard, Wallet, CreditCard, Users, RefreshCw,
   FileText, Target, Search, LogOut, Vault
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,12 +21,9 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    await signOut({ callbackUrl: '/' })
   }
 
   return (

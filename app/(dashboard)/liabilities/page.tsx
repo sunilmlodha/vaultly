@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,22 +23,18 @@ const CATEGORIES: { value: LiabilityCategory; label: string }[] = [
 const blank = { name: '', category: 'loan' as LiabilityCategory, balance: '', currency: 'GBP', interest_rate: '', monthly_payment: '', institution: '' }
 
 export default function LiabilitiesPage() {
+  const { data: session } = useSession()
   const [items, setItems] = useState<Liability[]>([])
-  const [profile, setProfile] = useState<{ id: string; household_id: string; full_name: string } | null>(null)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Liability | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setProfile(p)
-    const { data } = await supabase.from('liabilities').select('*').eq('household_id', p.household_id).order('created_at', { ascending: false })
-    setItems(data || [])
-  }, [supabase])
+    const res = await fetch('/api/liabilities')
+    const { liabilities } = await res.json()
+    setItems(liabilities || [])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -50,25 +46,27 @@ export default function LiabilitiesPage() {
   }
 
   const save = async () => {
-    if (!profile) return
     setLoading(true)
-    const payload = { name: form.name, category: form.category, balance: parseFloat(form.balance) || 0, currency: form.currency, interest_rate: parseFloat(form.interest_rate) || null, monthly_payment: parseFloat(form.monthly_payment) || null, institution: form.institution, user_id: profile.id, household_id: profile.household_id }
-    if (editing) await supabase.from('liabilities').update(payload).eq('id', editing.id)
-    else await supabase.from('liabilities').insert(payload)
+    const payload = { name: form.name, category: form.category, balance: parseFloat(form.balance) || 0, currency: form.currency, interest_rate: parseFloat(form.interest_rate) || null, monthly_payment: parseFloat(form.monthly_payment) || null, institution: form.institution }
+    if (editing) {
+      await fetch('/api/liabilities', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, ...payload }) })
+    } else {
+      await fetch('/api/liabilities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    }
     setOpen(false); setLoading(false); load()
   }
 
   const del = async (id: string) => {
     if (!confirm('Delete this liability?')) return
-    await supabase.from('liabilities').delete().eq('id', id)
+    await fetch('/api/liabilities', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
-  const total = items.reduce((s, l) => s + l.balance, 0)
+  const total = items.reduce((s, l) => s + Number(l.balance), 0)
 
   return (
     <div>
-      <Topbar title="Liabilities" subtitle={`${items.length} items · ${formatCurrency(total)} total`} userName={profile?.full_name}
+      <Topbar title="Liabilities" subtitle={`${items.length} items · ${formatCurrency(total)} total`} userName={session?.user?.name ?? ''}
         actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>} />
       <div className="p-4 md:p-8 space-y-4 animate-fade-in">
         {items.length === 0 ? (
@@ -89,10 +87,10 @@ export default function LiabilitiesPage() {
                     </div>
                     <Badge variant="danger">{CATEGORIES.find(c => c.value === l.category)?.label}</Badge>
                   </div>
-                  <p className="text-2xl font-bold text-rose-500">{formatCurrency(l.balance, l.currency)}</p>
+                  <p className="text-2xl font-bold text-rose-500">{formatCurrency(Number(l.balance), l.currency)}</p>
                   {l.interest_rate && <p className="text-xs text-slate-400 mt-0.5">{l.interest_rate}% interest</p>}
-                  {l.monthly_payment && <p className="text-xs text-slate-400">{formatCurrency(l.monthly_payment, l.currency)}/mo payment</p>}
-                  <p className="text-xs text-slate-400 mt-1">Updated {formatDate(l.updated_at)}</p>
+                  {l.monthly_payment && <p className="text-xs text-slate-400">{formatCurrency(Number(l.monthly_payment), l.currency)}/mo</p>}
+                  <p className="text-xs text-slate-400 mt-1">Added {formatDate(l.created_at)}</p>
                   <div className="flex gap-2 mt-4">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(l)}><Pencil size={13} /> Edit</Button>
                     <Button variant="ghost" size="sm" onClick={() => del(l.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>

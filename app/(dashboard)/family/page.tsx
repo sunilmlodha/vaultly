@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { getInitials } from '@/lib/utils'
 import { Plus, Users, UserPlus, Trash2 } from 'lucide-react'
-import type { HouseholdMember, FamilyRole } from '@/lib/types'
+import type { FamilyRole } from '@/lib/types'
+
+interface Member { id: string; role: FamilyRole; accepted: number; invited_email?: string; full_name?: string; email?: string }
 
 const ROLES: { value: FamilyRole; label: string }[] = [
   { value: 'partner', label: 'Partner' },
@@ -24,44 +26,39 @@ const ROLE_BADGE: Record<FamilyRole, 'purple' | 'info' | 'success' | 'warning' |
 }
 
 export default function FamilyPage() {
-  const [members, setMembers] = useState<HouseholdMember[]>([])
-  const [household, setHousehold] = useState<{ id: string; name: string } | null>(null)
-  const [profile, setProfile] = useState<{ id: string; household_id: string; full_name: string } | null>(null)
+  const { data: session } = useSession()
+  const [members, setMembers] = useState<Member[]>([])
+  const [household, setHousehold] = useState<{ name: string } | null>(null)
   const [open, setOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<FamilyRole>('partner')
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-    setProfile(p)
-    const { data: h } = await supabase.from('households').select('*').eq('id', p.household_id).single()
-    setHousehold(h)
-    const { data: m } = await supabase.from('household_members').select('*, profile:profiles(*)').eq('household_id', p.household_id)
+    const res = await fetch('/api/family')
+    const { members: m, household: h } = await res.json()
     setMembers(m || [])
-  }, [supabase])
+    setHousehold(h || null)
+  }, [])
 
   useEffect(() => { load() }, [load])
 
   const invite = async () => {
-    if (!profile || !inviteEmail) return
+    if (!inviteEmail) return
     setLoading(true)
-    await supabase.from('household_members').insert({ household_id: profile.household_id, invited_email: inviteEmail, role: inviteRole, accepted: false })
+    await fetch('/api/family', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invited_email: inviteEmail, role: inviteRole }) })
     setOpen(false); setInviteEmail(''); setLoading(false); load()
   }
 
   const remove = async (id: string) => {
     if (!confirm('Remove this member?')) return
-    await supabase.from('household_members').delete().eq('id', id)
+    await fetch('/api/family', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
 
   return (
     <div>
-      <Topbar title="Family" subtitle={household?.name} userName={profile?.full_name}
+      <Topbar title="Family" subtitle={household?.name} userName={session?.user?.name ?? ''}
         actions={<Button onClick={() => setOpen(true)} size="sm"><UserPlus size={14} /> Invite</Button>} />
       <div className="p-4 md:p-8 animate-fade-in">
         <Card>
@@ -76,7 +73,7 @@ export default function FamilyPage() {
             ) : (
               <div className="divide-y divide-slate-50">
                 {members.map((m) => {
-                  const name = (m.profile as { full_name?: string })?.full_name || m.invited_email || 'Invited user'
+                  const name = m.full_name || m.invited_email || 'Invited user'
                   return (
                     <div key={m.id} className="flex items-center justify-between py-4">
                       <div className="flex items-center gap-3">
@@ -85,7 +82,7 @@ export default function FamilyPage() {
                         </div>
                         <div>
                           <p className="font-medium text-slate-800">{name}</p>
-                          <p className="text-xs text-slate-400">{(m.profile as { email?: string })?.email || m.invited_email}</p>
+                          <p className="text-xs text-slate-400">{m.email || m.invited_email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
