@@ -17,11 +17,12 @@ export default async function DashboardPage() {
 
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [assetsRes, liabRes, renewalsRes, goalsRes] = await Promise.all([
+  const [assetsRes, liabRes, renewalsRes, goalsRes, userRes] = await Promise.all([
     db.execute({ sql: 'SELECT * FROM assets WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM liabilities WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM renewals WHERE household_id = ? ORDER BY renewal_date', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM goals WHERE household_id = ?', args: [hid] }),
+    db.execute({ sql: 'SELECT currency FROM users WHERE id = ?', args: [session!.user.id] }),
   ])
 
   // OB queries are isolated — if they fail the rest of the page still renders
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
   const liabilities = liabRes.rows as unknown as Liability[]
   const renewals = renewalsRes.rows as unknown as Renewal[]
   const goals = goalsRes.rows as unknown as Goal[]
+  const userCurrency = (userRes.rows[0]?.currency as string) || 'GBP'
 
   const totalAssets = assets.reduce((s, a) => s + Number(a.value), 0)
   const totalLiabilities = liabilities.reduce((s, l) => s + Number(l.balance), 0)
@@ -90,16 +92,16 @@ export default async function DashboardPage() {
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Net Worth" value={netWorth} icon={TrendingUp} color="indigo" />
-          <StatCard title="Total Assets" value={totalAssets} icon={Wallet} color="emerald" subtitle={`${assets.length} items`} />
-          <StatCard title="Liabilities" value={totalLiabilities} icon={CreditCard} color="rose" subtitle={`${liabilities.length} items`} />
-          <StatCard title="Due Renewals" value={upcomingRenewals.reduce((s, r) => s + Number(r.amount), 0)} icon={RefreshCw} color="amber" subtitle={`${upcomingRenewals.length} in 30 days`} />
+          <StatCard title="Net Worth" value={netWorth} currency={userCurrency} icon={TrendingUp} color="indigo" />
+          <StatCard title="Total Assets" value={totalAssets} currency={userCurrency} icon={Wallet} color="emerald" subtitle={`${assets.length} items`} />
+          <StatCard title="Liabilities" value={totalLiabilities} currency={userCurrency} icon={CreditCard} color="rose" subtitle={`${liabilities.length} items`} />
+          <StatCard title="Due Renewals" value={upcomingRenewals.reduce((s, r) => s + Number(r.amount), 0)} currency={userCurrency} icon={RefreshCw} color="amber" subtitle={`${upcomingRenewals.length} in 30 days`} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle>Net Worth Trend</CardTitle></CardHeader>
-            <CardContent><NetWorthChart netWorth={netWorth} /></CardContent>
+            <CardContent><NetWorthChart netWorth={netWorth} currency={userCurrency} /></CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Asset Breakdown</CardTitle></CardHeader>

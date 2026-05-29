@@ -13,15 +13,16 @@ const mockData = [
 
 interface NetWorthChartProps {
   netWorth: number
+  currency?: string
 }
 
-export function NetWorthChart({ netWorth }: NetWorthChartProps) {
+export function NetWorthChart({ netWorth, currency }: NetWorthChartProps) {
   const data = mockData.map((d, i) =>
     i === mockData.length - 1 ? { ...d, value: netWorth } : d
   )
   return (
     <div>
-      <p className="text-3xl font-bold text-slate-800 mb-1">{formatCurrency(netWorth)}</p>
+      <p className="text-3xl font-bold text-slate-800 mb-1">{formatCurrency(netWorth, currency)}</p>
       <p className="text-sm text-emerald-600 font-medium mb-4">+6.2% since last month</p>
       <ResponsiveContainer width="100%" height={160}>
         <AreaChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -36,7 +37,7 @@ export function NetWorthChart({ netWorth }: NetWorthChartProps) {
           <YAxis hide />
           <Tooltip
             contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, fontSize: 12 }}
-            formatter={(v) => [formatCurrency(Number(v)), 'Net Worth']}
+            formatter={(v) => [formatCurrency(Number(v), currency), 'Net Worth']}
           />
           <Area type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2.5} fill="url(#nwGradient)" dot={false} />
         </AreaChart>

@@ -3,28 +3,34 @@ import { NextIntlClientProvider } from 'next-intl'
 import { useEffect, useState } from 'react'
 import type { Locale } from '@/lib/i18n'
 
-// English messages imported statically — always available, no async needed for default locale.
-// Other locales are lazy-loaded on first mount if a different locale is set.
+// English messages imported statically — always available, no async wait on default locale.
 import enMessages from '../messages/en.json'
 
+// Static map so webpack/turbopack can bundle ALL locale files at build time.
+// A dynamic string like import(`../messages/${locale}.json`) is NOT statically
+// analysable and silently produces an empty chunk in production.
+const LOCALE_LOADERS: Partial<Record<Locale, () => Promise<{ default: Record<string, unknown> }>>> = {
+  de: () => import('../messages/de.json'),
+  fr: () => import('../messages/fr.json'),
+  hi: () => import('../messages/hi.json'),
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Start with English so there's ALWAYS a provider from the very first render.
-  // useTranslations() in Sidebar/MobileNav will never see a missing provider.
+  // Start with English so NextIntlClientProvider is ALWAYS present from first render.
   const [locale, setLocale]     = useState<Locale>('en')
   const [messages, setMessages] = useState<Record<string, unknown>>(enMessages as Record<string, unknown>)
 
   useEffect(() => {
     const stored = (localStorage.getItem('vaultly_lang') || 'en') as Locale
-    if (stored === 'en') {
-      // Already using English — nothing to load
+    if (stored === 'en' || !LOCALE_LOADERS[stored]) {
       setLocale('en')
+      setMessages(enMessages as Record<string, unknown>)
       return
     }
     setLocale(stored)
-    import(`../messages/${stored}.json`)
-      .then(m => setMessages(m.default as Record<string, unknown>))
+    LOCALE_LOADERS[stored]!()
+      .then(m => setMessages(m.default))
       .catch(() => {
-        // Fallback: stay on English
         setLocale('en')
         setMessages(enMessages as Record<string, unknown>)
       })
