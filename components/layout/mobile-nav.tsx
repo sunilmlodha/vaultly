@@ -6,10 +6,10 @@ import { LayoutDashboard, Wallet, RefreshCw, Search, Users } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
-  { href: '/dashboard/assets', label: 'Assets', icon: Wallet },
-  { href: '/dashboard/agent', label: 'Recovery', icon: Search },
-  { href: '/dashboard/renewals', label: 'Renewals', icon: RefreshCw },
-  { href: '/dashboard/family', label: 'Family', icon: Users },
+  { href: '/assets', label: 'Assets', icon: Wallet },
+  { href: '/agent', label: 'Recovery', icon: Search },
+  { href: '/renewals', label: 'Renewals', icon: RefreshCw },
+  { href: '/family', label: 'Family', icon: Users },
 ]
 
 export function MobileNav() {

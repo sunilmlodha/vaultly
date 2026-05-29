@@ -65,7 +65,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Upcoming Renewals</CardTitle>
-              <Link href="/dashboard/renewals" className="text-xs text-indigo-500 hover:text-indigo-600 font-medium">View all</Link>
+              <Link href="/renewals" className="text-xs text-indigo-500 hover:text-indigo-600 font-medium">View all</Link>
             </CardHeader>
             <CardContent>
               {upcomingRenewals.length === 0 ? (
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Goals</CardTitle>
-              <Link href="/dashboard/goals" className="text-xs text-indigo-500 hover:text-indigo-600 font-medium">View all</Link>
+              <Link href="/goals" className="text-xs text-indigo-500 hover:text-indigo-600 font-medium">View all</Link>
             </CardHeader>
             <CardContent>
               {goals.length === 0 ? (

@@ -10,13 +10,13 @@ import { signOut } from 'next-auth/react'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/assets', label: 'Assets', icon: Wallet },
-  { href: '/dashboard/liabilities', label: 'Liabilities', icon: CreditCard },
-  { href: '/dashboard/goals', label: 'Goals', icon: Target },
-  { href: '/dashboard/renewals', label: 'Renewals', icon: RefreshCw },
-  { href: '/dashboard/documents', label: 'Documents', icon: FileText },
-  { href: '/dashboard/family', label: 'Family', icon: Users },
-  { href: '/dashboard/agent', label: 'Asset Recovery', icon: Search, highlight: true },
+  { href: '/assets', label: 'Assets', icon: Wallet },
+  { href: '/liabilities', label: 'Liabilities', icon: CreditCard },
+  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/renewals', label: 'Renewals', icon: RefreshCw },
+  { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '/family', label: 'Family', icon: Users },
+  { href: '/agent', label: 'Asset Recovery', icon: Search, highlight: true },
 ]
 
 export function Sidebar() {
