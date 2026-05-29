@@ -11,7 +11,6 @@ import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Pencil, Trash2, Wallet, Landmark, RefreshCw } from 'lucide-react'
 import type { Asset, AssetCategory } from '@/lib/types'
-import { useFormatCurrency, useUserPrefs } from '@/components/providers/user-prefs-provider'
 
 const CATEGORIES: { value: AssetCategory | string; label: string; group?: string }[] = [
   // ── Core ────────────────────────────────────────────────────────────────
@@ -51,11 +50,15 @@ const BADGE: Record<string, 'purple' | 'success' | 'info' | 'warning' | 'danger'
   insurance: 'default', other: 'default',
 }
 
+function getDefaultCurrency() {
+  if (typeof window === 'undefined') return 'GBP'
+  return localStorage.getItem('vaultly_currency') || 'GBP'
+}
+
+const blank = { name: '', category: 'bank_account' as AssetCategory, value: '', currency: 'GBP', institution: '', notes: '' }
+
 export default function AssetsPage() {
   const { data: session } = useSession()
-  const { currency: userCurrency } = useUserPrefs()
-  const fmtCurrency = useFormatCurrency()
-  const blank = { name: '', category: 'bank_account' as AssetCategory, value: '', currency: userCurrency || 'GBP', institution: '', notes: '' }
   const [assets, setAssets] = useState<Asset[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Asset | null>(null)
@@ -76,7 +79,7 @@ export default function AssetsPage() {
 
   useEffect(() => { load() }, [load])
 
-  const openAdd = () => { setEditing(null); setForm({ name: '', category: 'bank_account' as AssetCategory, value: '', currency: userCurrency || 'GBP', institution: '', notes: '' }); setOpen(true) }
+  const openAdd = () => { setEditing(null); setForm({ name: '', category: 'bank_account' as AssetCategory, value: '', currency: getDefaultCurrency(), institution: '', notes: '' }); setOpen(true) }
   const openEdit = (a: Asset) => {
     setEditing(a)
     setForm({ name: a.name, category: a.category, value: String(a.value), currency: a.currency, institution: a.institution || '', notes: a.notes || '' })
@@ -104,7 +107,7 @@ export default function AssetsPage() {
 
   return (
     <div>
-      <Topbar title="Assets" subtitle={`${assets.length} assets · ${fmtCurrency(total)}`} userName={session?.user?.name ?? ''}
+      <Topbar title="Assets" subtitle={`${assets.length} assets · ${formatCurrency(total)}`} userName={session?.user?.name ?? ''}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={connectBank}><Landmark size={14} /> Connect bank</Button>
@@ -138,7 +141,7 @@ export default function AssetsPage() {
                       <Badge variant={BADGE[a.category]}>{CATEGORIES.find(c => c.value === a.category)?.label}</Badge>
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-indigo-600">{fmtCurrency(Number(a.value), a.currency)}</p>
+                  <p className="text-2xl font-bold text-indigo-600">{formatCurrency(Number(a.value), a.currency)}</p>
                   {a.ob_account_id && (
                     <p className="text-xs text-indigo-400 mt-0.5 flex items-center gap-1">
                       <RefreshCw size={9} /> Live balance

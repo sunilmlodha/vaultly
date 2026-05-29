@@ -34,13 +34,23 @@ export default function SettingsPage() {
   const [pinSet, setPinSet] = useState(false)
 
   useEffect(() => {
-    fetch('/api/account').then(r => r.json()).then(({ account }) => {
-      if (account) setProfile({ full_name: account.full_name, email: account.email, currency: account.currency, created_at: account.created_at })
-    })
+    // Pre-fill currency from localStorage immediately (no flash)
     if (typeof window !== 'undefined') {
+      const savedCurrency = localStorage.getItem('vaultly_currency') || 'GBP'
+      setProfile(p => ({ ...p, currency: savedCurrency }))
       setPinSet(!!localStorage.getItem('vaultly_pin_hash'))
       setLanguage(localStorage.getItem('vaultly_lang') || 'en')
     }
+    // Then sync from DB (source of truth)
+    fetch('/api/account').then(r => r.json()).then(({ account }) => {
+      if (account) {
+        setProfile({ full_name: account.full_name, email: account.email, currency: account.currency, created_at: account.created_at })
+        // Keep localStorage in sync with DB
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('vaultly_currency', account.currency)
+        }
+      }
+    })
   }, [])
 
   const saveProfile = async () => {
@@ -50,10 +60,11 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ full_name: profile.full_name, currency: profile.currency }),
     })
+    // Write to localStorage — this is what formatCurrency() reads on every page
+    // so ALL pages immediately use the new currency without needing a page reload.
+    localStorage.setItem('vaultly_currency', profile.currency)
     setSaving(false)
     setSaved(true)
-    // Notify the UserPrefsProvider to re-fetch the new currency
-    window.dispatchEvent(new Event('vaultly:currency-changed'))
     setTimeout(() => setSaved(false), 2000)
   }
 

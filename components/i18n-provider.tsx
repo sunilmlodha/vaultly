@@ -3,31 +3,32 @@ import { NextIntlClientProvider } from 'next-intl'
 import { useEffect, useState } from 'react'
 import type { Locale } from '@/lib/i18n'
 
-// Dynamically load the correct message bundle based on localStorage
+// English messages imported statically — always available, no async needed for default locale.
+// Other locales are lazy-loaded on first mount if a different locale is set.
+import enMessages from '../messages/en.json'
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
+  // Start with English so there's ALWAYS a provider from the very first render.
+  // useTranslations() in Sidebar/MobileNav will never see a missing provider.
   const [locale, setLocale]     = useState<Locale>('en')
-  const [messages, setMessages] = useState<Record<string, unknown>>({})
-  const [ready, setReady]       = useState(false)
+  const [messages, setMessages] = useState<Record<string, unknown>>(enMessages as Record<string, unknown>)
 
   useEffect(() => {
     const stored = (localStorage.getItem('vaultly_lang') || 'en') as Locale
+    if (stored === 'en') {
+      // Already using English — nothing to load
+      setLocale('en')
+      return
+    }
     setLocale(stored)
-
     import(`../messages/${stored}.json`)
-      .then(m => {
-        setMessages(m.default)
-        setReady(true)
-      })
+      .then(m => setMessages(m.default as Record<string, unknown>))
       .catch(() => {
-        // Fallback to English
-        import('../messages/en.json').then(m => {
-          setMessages(m.default)
-          setReady(true)
-        })
+        // Fallback: stay on English
+        setLocale('en')
+        setMessages(enMessages as Record<string, unknown>)
       })
   }, [])
-
-  if (!ready) return <>{children}</> // render without translations while loading
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">

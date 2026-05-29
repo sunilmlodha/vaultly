@@ -12,17 +12,40 @@ const BCP_MAP: Record<string, string> = {
   hi: 'hi-IN',
 }
 
-function getClientLocale(): string {
+/**
+ * Read the user's display locale from localStorage (set by the language picker).
+ * Falls back to 'en-GB' on the server (SSR) or if not set.
+ */
+function getClientLocale(currency?: string): string {
   if (typeof window === 'undefined') return 'en-GB'
   const lang = localStorage.getItem('vaultly_lang') || 'en'
+  // Always use en-IN for INR regardless of UI language — correct lakh/crore formatting
+  if (currency === 'INR') return 'en-IN'
   return BCP_MAP[lang] || 'en-GB'
 }
 
-export function formatCurrency(amount: number, currency = 'GBP'): string {
-  const bcpLocale = currency === 'INR' ? 'en-IN' : getClientLocale()
+/**
+ * Read the user's preferred currency from localStorage (set by the currency picker in Settings).
+ * Falls back to 'GBP'. This means every formatCurrency() call with no explicit currency
+ * automatically uses the user's saved preference.
+ */
+function getClientCurrency(): string {
+  if (typeof window === 'undefined') return 'GBP'
+  return localStorage.getItem('vaultly_currency') || 'GBP'
+}
+
+/**
+ * Format a monetary amount.
+ * - If `currency` is supplied (e.g. from a DB row), uses that.
+ * - If omitted, reads the user's preferred currency from localStorage.
+ * - Locale (number format style) always comes from the user's language setting.
+ */
+export function formatCurrency(amount: number, currency?: string): string {
+  const cur = currency || getClientCurrency()
+  const bcpLocale = getClientLocale(cur)
   return new Intl.NumberFormat(bcpLocale, {
     style: 'currency',
-    currency,
+    currency: cur,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount)
