@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
 import { FileText, Plus, Trash2, Download } from 'lucide-react'
 
-interface Doc { id: string; name: string; category: string; blob_url: string; file_size: number; created_at: string }
+interface Doc { id: string; name: string; category: string; blob_url: string; file_size: number; created_at: string; notes?: string }
 
 const CATEGORIES = [
   { value: 'pension_statement', label: 'Pension Statement' },
@@ -107,7 +107,7 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <a href={d.blob_url} target="_blank" rel="noopener noreferrer">
+                    <a href={`/api/documents/${d.id}/download`} target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm"><Download size={14} /></Button>
                     </a>
                     <Button variant="ghost" size="sm" onClick={() => del(d.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
