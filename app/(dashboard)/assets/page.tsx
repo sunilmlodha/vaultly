@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Pencil, Trash2, Wallet } from 'lucide-react'
+import { Plus, Pencil, Trash2, Wallet, Landmark, RefreshCw } from 'lucide-react'
 import type { Asset, AssetCategory } from '@/lib/types'
 
 const CATEGORIES: { value: AssetCategory; label: string }[] = [
@@ -36,6 +36,12 @@ export default function AssetsPage() {
   const [editing, setEditing] = useState<Asset | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
+
+  const connectBank = async () => {
+    const res = await fetch('/api/connections/auth')
+    const { url } = await res.json()
+    window.location.href = url
+  }
 
   const load = useCallback(async () => {
     const res = await fetch('/api/assets')
@@ -74,7 +80,12 @@ export default function AssetsPage() {
   return (
     <div>
       <Topbar title="Assets" subtitle={`${assets.length} assets · ${formatCurrency(total)}`} userName={session?.user?.name ?? ''}
-        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add Asset</Button>} />
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={connectBank}><Landmark size={14} /> Connect bank</Button>
+            <Button onClick={openAdd} size="sm"><Plus size={14} /> Add Asset</Button>
+          </div>
+        } />
       <div className="p-4 md:p-8 space-y-4 animate-fade-in">
         {assets.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
@@ -93,12 +104,32 @@ export default function AssetsPage() {
                       <p className="font-semibold text-slate-800">{a.name}</p>
                       {a.institution && <p className="text-xs text-slate-400 mt-0.5">{a.institution}</p>}
                     </div>
-                    <Badge variant={BADGE[a.category]}>{CATEGORIES.find(c => c.value === a.category)?.label}</Badge>
+                    <div className="flex items-center gap-1.5">
+                      {a.ob_account_id && (
+                        <Badge variant="info" className="flex items-center gap-1">
+                          <RefreshCw size={9} /> Live
+                        </Badge>
+                      )}
+                      <Badge variant={BADGE[a.category]}>{CATEGORIES.find(c => c.value === a.category)?.label}</Badge>
+                    </div>
                   </div>
                   <p className="text-2xl font-bold text-indigo-600">{formatCurrency(Number(a.value), a.currency)}</p>
+                  {a.ob_account_id && (
+                    <p className="text-xs text-indigo-400 mt-0.5 flex items-center gap-1">
+                      <RefreshCw size={9} /> Live balance
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400 mt-1">Added {formatDate(a.created_at)}</p>
                   <div className="flex gap-2 mt-4">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Pencil size={13} /> Edit</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(a)}
+                      disabled={!!a.ob_account_id}
+                      title={a.ob_account_id ? 'Synced from bank — edit disabled' : undefined}
+                    >
+                      <Pencil size={13} /> Edit
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => del(a.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                   </div>
                 </CardContent>

@@ -6,7 +6,7 @@ import { NetWorthChart } from '@/components/dashboard/net-worth-chart'
 import { AssetBreakdown } from '@/components/dashboard/asset-breakdown'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Wallet, CreditCard, TrendingUp, RefreshCw } from 'lucide-react'
+import { Wallet, CreditCard, TrendingUp, RefreshCw, Landmark, AlertTriangle } from 'lucide-react'
 import { formatCurrency, formatDate, getDaysUntil } from '@/lib/utils'
 import Link from 'next/link'
 import type { Asset, Liability, Renewal, Goal } from '@/lib/types'
@@ -15,12 +15,19 @@ export default async function DashboardPage() {
   const session = await auth()
   const hid = session!.user.householdId
 
-  const [assetsRes, liabRes, renewalsRes, goalsRes] = await Promise.all([
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [assetsRes, liabRes, renewalsRes, goalsRes, connectionsRes, expiringRes] = await Promise.all([
     db.execute({ sql: 'SELECT * FROM assets WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM liabilities WHERE household_id = ?', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM renewals WHERE household_id = ? ORDER BY renewal_date', args: [hid] }),
     db.execute({ sql: 'SELECT * FROM goals WHERE household_id = ?', args: [hid] }),
+    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active'", args: [hid] }),
+    db.execute({ sql: "SELECT COUNT(*) as cnt FROM open_banking_connections WHERE household_id = ? AND status = 'active' AND consent_expires_at < ?", args: [hid, sevenDaysFromNow] }),
   ])
+
+  const connectionsCount = Number(connectionsRes.rows[0]?.cnt ?? 0)
+  const expiringCount = Number(expiringRes.rows[0]?.cnt ?? 0)
 
   const assets = assetsRes.rows as unknown as Asset[]
   const liabilities = liabRes.rows as unknown as Liability[]
@@ -43,6 +50,41 @@ export default async function DashboardPage() {
         userName={session?.user?.name ?? ''}
       />
       <div className="p-4 md:p-8 space-y-6 animate-fade-in">
+        {/* Open Banking onboarding banner */}
+        {connectionsCount === 0 && (
+          <Card className="border-indigo-200 bg-indigo-50">
+            <CardContent className="py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0">
+                  <Landmark size={17} className="text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-indigo-800 text-sm">Connect your bank accounts</p>
+                  <p className="text-xs text-indigo-600 mt-0.5">Get live balances synced automatically. Detects subscriptions for Renewals too.</p>
+                </div>
+              </div>
+              <Link href="/connections">
+                <button className="shrink-0 text-sm font-semibold text-indigo-600 bg-white border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-50 transition-all">
+                  Connect →
+                </button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Consent expiry warning */}
+        {expiringCount > 0 && (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="py-4 flex items-center gap-3">
+              <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-800">
+                {expiringCount} bank connection{expiringCount > 1 ? 's' : ''} expire{expiringCount === 1 ? 's' : ''} within 7 days — balances will stop syncing.{' '}
+                <Link href="/connections" className="underline font-semibold">Re-authorise now →</Link>
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="Net Worth" value={netWorth} icon={TrendingUp} color="indigo" />
           <StatCard title="Total Assets" value={totalAssets} icon={Wallet} color="emerald" subtitle={`${assets.length} items`} />

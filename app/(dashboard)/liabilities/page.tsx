@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Pencil, Trash2, CreditCard } from 'lucide-react'
+import { Plus, Pencil, Trash2, CreditCard, Landmark, RefreshCw } from 'lucide-react'
 import type { Liability, LiabilityCategory } from '@/lib/types'
 
 const CATEGORIES: { value: LiabilityCategory; label: string }[] = [
@@ -29,6 +29,12 @@ export default function LiabilitiesPage() {
   const [editing, setEditing] = useState<Liability | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
+
+  const connectBank = async () => {
+    const res = await fetch('/api/connections/auth')
+    const { url } = await res.json()
+    window.location.href = url
+  }
 
   const load = useCallback(async () => {
     const res = await fetch('/api/liabilities')
@@ -67,7 +73,12 @@ export default function LiabilitiesPage() {
   return (
     <div>
       <Topbar title="Liabilities" subtitle={`${items.length} items · ${formatCurrency(total)} total`} userName={session?.user?.name ?? ''}
-        actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>} />
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={connectBank}><Landmark size={14} /> Connect bank</Button>
+            <Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>
+          </div>
+        } />
       <div className="p-4 md:p-8 space-y-4 animate-fade-in">
         {items.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
@@ -85,14 +96,34 @@ export default function LiabilitiesPage() {
                       <p className="font-semibold text-slate-800">{l.name}</p>
                       {l.institution && <p className="text-xs text-slate-400 mt-0.5">{l.institution}</p>}
                     </div>
-                    <Badge variant="danger">{CATEGORIES.find(c => c.value === l.category)?.label}</Badge>
+                    <div className="flex items-center gap-1.5">
+                      {l.ob_account_id && (
+                        <Badge variant="info" className="flex items-center gap-1">
+                          <RefreshCw size={9} /> Live
+                        </Badge>
+                      )}
+                      <Badge variant="danger">{CATEGORIES.find(c => c.value === l.category)?.label}</Badge>
+                    </div>
                   </div>
                   <p className="text-2xl font-bold text-rose-500">{formatCurrency(Number(l.balance), l.currency)}</p>
+                  {l.ob_account_id && (
+                    <p className="text-xs text-indigo-400 mt-0.5 flex items-center gap-1">
+                      <RefreshCw size={9} /> Live balance
+                    </p>
+                  )}
                   {l.interest_rate && <p className="text-xs text-slate-400 mt-0.5">{l.interest_rate}% interest</p>}
                   {l.monthly_payment && <p className="text-xs text-slate-400">{formatCurrency(Number(l.monthly_payment), l.currency)}/mo</p>}
                   <p className="text-xs text-slate-400 mt-1">Added {formatDate(l.created_at)}</p>
                   <div className="flex gap-2 mt-4">
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(l)}><Pencil size={13} /> Edit</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(l)}
+                      disabled={!!l.ob_account_id}
+                      title={l.ob_account_id ? 'Synced from bank — edit disabled' : undefined}
+                    >
+                      <Pencil size={13} /> Edit
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => del(l.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={13} /></Button>
                   </div>
                 </CardContent>

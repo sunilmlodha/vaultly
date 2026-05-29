@@ -64,6 +64,7 @@ export interface Asset {
   institution?: string
   account_number?: string
   notes?: string
+  ob_account_id?: string
   created_at: string
   updated_at: string
 }
@@ -80,6 +81,7 @@ export interface Liability {
   monthly_payment?: number
   institution?: string
   notes?: string
+  ob_account_id?: string
   created_at: string
   updated_at: string
 }
@@ -180,4 +182,72 @@ export interface ProbableAsset {
   confidence_score: number
   reasoning: string
   recommended_service: string
+}
+
+// ─── Open Banking ─────────────────────────────────────────────────────────────
+
+export interface OpenBankingConnection {
+  id: string
+  household_id: string
+  user_id: string
+  provider: string
+  bank_id: string
+  bank_name: string
+  bank_logo_url?: string
+  status: 'active' | 'expired' | 'revoked' | 'error'
+  last_synced_at?: string
+  consent_expires_at: string
+  token_expires_at: string
+  created_at: string
+  updated_at: string
+  // client-side extras (not persisted)
+  account_count?: number
+}
+
+export interface OpenBankingAccount {
+  id: string
+  connection_id: string
+  household_id: string
+  external_account_id: string
+  account_type: string
+  account_name: string
+  currency: string
+  balance: number
+  linked_asset_id?: string
+  linked_liability_id?: string
+  last_synced_at?: string
+  created_at: string
+}
+
+export interface DetectedRecurring {
+  merchant_key: string
+  name: string
+  amount: number
+  currency: string
+  frequency: 'monthly'
+  next_renewal_date: string
+  transaction_count: number
+}
+
+// Matches a TrueLayer account as returned from their API
+export interface TLAccount {
+  account_id: string
+  account_type: string  // TRANSACTION | SAVINGS | CREDIT_CARD | LOAN | MORTGAGE
+  display_name: string
+  currency: string
+  provider: { display_name: string; logo_uri?: string; provider_id: string }
+  // added by our mapping layer:
+  balance?: number
+  side?: 'asset' | 'liability'
+  category?: AssetCategory | LiabilityCategory
+}
+
+export interface AccountMapping {
+  external_account_id: string
+  account_type: string
+  account_name: string
+  currency: string
+  balance: number
+  decision: 'asset' | 'liability' | 'skip'
+  category: string
 }

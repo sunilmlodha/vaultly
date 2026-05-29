@@ -2,15 +2,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { Topbar } from '@/components/layout/topbar'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { formatCurrency, formatDate, getDaysUntil } from '@/lib/utils'
-import { Plus, RefreshCw, Trash2, Pencil } from 'lucide-react'
-import type { Renewal } from '@/lib/types'
+import { Plus, RefreshCw, Trash2, Pencil, Sparkles, X, CheckCheck, Loader2 } from 'lucide-react'
+import type { Renewal, DetectedRecurring } from '@/lib/types'
 
 const CATEGORIES = [
   { value: 'subscription', label: 'Subscription' },
@@ -30,6 +30,10 @@ export default function RenewalsPage() {
   const [editing, setEditing] = useState<Renewal | null>(null)
   const [form, setForm] = useState(blank)
   const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<DetectedRecurring[]>([])
+  const [dismissedSuggestions, setDismissedSuggestions] = useState(false)
+  const [approvingAll, setApprovingAll] = useState(false)
+  const [approvingOne, setApprovingOne] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/renewals')
@@ -38,6 +42,42 @@ export default function RenewalsPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    fetch('/api/connections/recurring')
+      .then(r => r.json())
+      .then(d => setSuggestions(d.suggestions || []))
+      .catch(() => {})
+  }, [])
+
+  const approveAll = async () => {
+    setApprovingAll(true)
+    try {
+      await fetch('/api/connections/recurring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestions }),
+      })
+      setDismissedSuggestions(true)
+      setSuggestions([])
+    } finally {
+      setApprovingAll(false)
+    }
+  }
+
+  const approveOne = async (suggestion: DetectedRecurring) => {
+    setApprovingOne(suggestion.merchant_key)
+    try {
+      await fetch('/api/connections/recurring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestions: [suggestion] }),
+      })
+      setSuggestions(prev => prev.filter(s => s.merchant_key !== suggestion.merchant_key))
+    } finally {
+      setApprovingOne(null)
+    }
+  }
 
   const openAdd = () => { setEditing(null); setForm(blank); setOpen(true) }
   const openEdit = (r: Renewal) => {
@@ -70,7 +110,80 @@ export default function RenewalsPage() {
     <div>
       <Topbar title="Renewals" subtitle={`${items.length} tracked`} userName={session?.user?.name ?? ''}
         actions={<Button onClick={openAdd} size="sm"><Plus size={14} /> Add</Button>} />
-      <div className="p-4 md:p-8 animate-fade-in">
+      <div className="p-4 md:p-8 animate-fade-in space-y-6">
+
+        {/* Recurring suggestions banner */}
+        {suggestions.length > 0 && !dismissedSuggestions && (
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardHeader className="pb-3 pt-5 px-5">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base font-semibold text-emerald-800 flex items-center gap-2">
+                  <Sparkles size={16} className="text-emerald-500" />
+                  {suggestions.length} recurring payment{suggestions.length !== 1 ? 's' : ''} detected from your bank
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={approveAll}
+                    disabled={approvingAll}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    {approvingAll ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <CheckCheck size={13} />
+                    )}
+                    Add all
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDismissedSuggestions(true)}
+                    className="text-emerald-700 hover:bg-emerald-100"
+                  >
+                    <X size={13} />
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pb-5 px-5 space-y-2">
+              {suggestions.map((s) => (
+                <div
+                  key={s.merchant_key}
+                  className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-emerald-100"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800 text-sm">{s.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {formatCurrency(s.amount, s.currency)}/mo
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="default" className="text-[10px]">
+                      {s.transaction_count} transactions
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => approveOne(s)}
+                      disabled={approvingOne === s.merchant_key}
+                    >
+                      {approvingOne === s.merchant_key ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Plus size={12} />
+                      )}
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        <div>
         {items.length === 0 ? (
           <Card><CardContent className="py-16 text-center">
             <RefreshCw size={32} className="text-slate-300 mx-auto mb-3" />
@@ -110,6 +223,7 @@ export default function RenewalsPage() {
             })}
           </div>
         )}
+        </div>
       </div>
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit Renewal' : 'Add Renewal'}>
         <div className="space-y-4">

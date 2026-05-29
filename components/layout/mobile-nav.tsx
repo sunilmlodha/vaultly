@@ -2,14 +2,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Wallet, RefreshCw, Search, Users } from 'lucide-react'
+import { LayoutDashboard, Wallet, RefreshCw, Search, Landmark } from 'lucide-react'
 
 const nav = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/assets', label: 'Assets', icon: Wallet },
   { href: '/agent', label: 'Recovery', icon: Search },
   { href: '/renewals', label: 'Renewals', icon: RefreshCw },
-  { href: '/family', label: 'Family', icon: Users },
+  { href: '/connections', label: 'Banks', icon: Landmark },
 ]
 
 export function MobileNav() {
