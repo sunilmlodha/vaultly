@@ -118,16 +118,26 @@ export function useCryptoSearch() {
   return { query, setQuery, results, searching, selectedCoin, livePrice, loadingPrice, selectCoin, reset }
 }
 
+interface PropertySaleResult {
+  address: string; postcode: string; price: number
+  date: string; displayDate: string; propertyType: string
+}
+
+interface PropertyLookupResult {
+  sales: PropertySaleResult[]
+  selectedSale: PropertySaleResult | null
+  estimatedValue: number | null
+  yearsSinceSale: number | null
+  annualGrowthPct: number
+  confidence: string
+  disclaimer: string
+}
+
 export function usePropertyLookup() {
   const [postcode, setPostcode] = useState('')
-  const [result, setResult] = useState<{
-    lastSale: { address: string; price: number; date: string; propertyType: string } | null
-    estimatedValue: number | null
-    annualGrowthPct: number
-    confidence: string
-    disclaimer: string
-  } | null>(null)
+  const [result, setResult] = useState<PropertyLookupResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [selectingLoading, setSelectingLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const lookup = useCallback(async () => {
@@ -144,9 +154,25 @@ export function usePropertyLookup() {
     }
   }, [postcode])
 
+  const selectSale = useCallback(async (sale: PropertySaleResult) => {
+    if (!result) return
+    setSelectingLoading(true)
+    try {
+      const res = await fetch('/api/assets/property', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sale, postcode }),
+      })
+      const data = await res.json()
+      setResult(prev => prev ? { ...prev, ...data } : data)
+    } finally {
+      setSelectingLoading(false)
+    }
+  }, [result, postcode])
+
   const reset = useCallback(() => {
     setPostcode(''); setResult(null); setError(null)
   }, [])
 
-  return { postcode, setPostcode, result, loading, error, lookup, reset }
+  return { postcode, setPostcode, result, loading, selectingLoading, error, lookup, selectSale, reset }
 }

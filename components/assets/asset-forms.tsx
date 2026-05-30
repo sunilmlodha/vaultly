@@ -304,87 +304,149 @@ export function CryptoForm({ data, onChange }: { data: Partial<AssetFormData> & 
 // ── Property form ─────────────────────────────────────────────────────────────
 
 export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>; onChange: (d: Partial<AssetFormData>) => void }) {
-  const { postcode, setPostcode, result, loading, error, lookup } = usePropertyLookup()
+  const { postcode, setPostcode, result, loading, selectingLoading, error, lookup, selectSale } = usePropertyLookup()
   const [overrideValue, setOverrideValue] = useState('')
   const [showManual, setShowManual] = useState(false)
+  const [hasApplied, setHasApplied] = useState(false)
 
-  const handleLookup = async () => {
-    await lookup()
-  }
-
-  // Sync result → parent
-  if (result?.estimatedValue && !overrideValue) {
+  // Apply estimate when a sale is selected and form hasn't been manually edited
+  const applySale = (sale: typeof result extends null ? never : NonNullable<typeof result>['selectedSale'], est: typeof result) => {
+    if (!sale || !est) return
     onChange({
-      value: result.estimatedValue,
+      value: est.estimatedValue ?? sale.price,
       currency: 'GBP',
-      name: data.name || result.lastSale?.address || postcode,
-      notes: result.disclaimer,
+      name: data.name || sale.address,
+      notes: est.disclaimer,
     })
+    setHasApplied(true)
   }
+
+  // Auto-apply when result first loads
+  if (result && result.selectedSale && result.estimatedValue && !hasApplied && !overrideValue) {
+    applySale(result.selectedSale, result)
+  }
+
+  const handleSelectSale = async (sale: NonNullable<typeof result>['sales'][0]) => {
+    await selectSale(sale)
+    // After selectSale updates result, re-apply
+    setHasApplied(false)
+    setOverrideValue('')
+  }
+
+  const selected = result?.selectedSale
 
   return (
     <div className="space-y-4">
-      <Field label="UK Postcode" hint="We'll look up the last sale price and estimate today's value">
+      {/* Postcode lookup */}
+      <Field label="UK Postcode" hint="Land Registry will look up sold prices at this postcode">
         <div className="flex gap-2">
           <div className="flex-1 flex items-center rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-amber-300 bg-white">
             <MapPin size={14} className="ml-3 text-slate-400 shrink-0" />
             <input
               className="flex-1 px-3 py-2.5 text-sm bg-transparent focus:outline-none uppercase tracking-widest"
-              placeholder="SW1A 1AA"
+              placeholder="e.g. SL3 7RQ"
               value={postcode}
-              onChange={e => setPostcode(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === 'Enter' && handleLookup()}
+              onChange={e => { setPostcode(e.target.value.toUpperCase()); setHasApplied(false) }}
+              onKeyDown={e => e.key === 'Enter' && lookup()}
               autoFocus
             />
           </div>
           <button
-            onClick={handleLookup}
-            disabled={loading || postcode.length < 3}
+            onClick={lookup}
+            disabled={loading || postcode.length < 5}
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shrink-0"
           >
-            {loading ? '…' : 'Look up'}
+            {loading ? (
+              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
+            ) : 'Look up'}
           </button>
         </div>
       </Field>
 
       {error && <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
 
-      {result && (
-        <div className={`rounded-2xl border p-4 space-y-2 ${
+      {/* Property picker — show all properties at postcode */}
+      {result && result.sales.length > 0 && (
+        <div className="space-y-2">
+          {result.sales.length > 1 && (
+            <p className="text-xs font-medium text-slate-500">
+              {result.sales.length} properties found — select yours:
+            </p>
+          )}
+          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+            {result.sales.map((sale, i) => {
+              const isSelected = selected?.address === sale.address
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleSelectSale(sale)}
+                  disabled={selectingLoading}
+                  className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300'
+                      : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{sale.address}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {sale.propertyType} · Sold {formatCurrency(sale.price, 'GBP')} · {sale.displayDate}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                        <svg viewBox="0 0 12 12" className="w-3 h-3 fill-white"><path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Estimate card for selected property */}
+      {result && selected && result.estimatedValue && (
+        <div className={`rounded-2xl border p-4 ${
           result.confidence === 'high' ? 'bg-emerald-50 border-emerald-200'
           : result.confidence === 'medium' ? 'bg-amber-50 border-amber-200'
           : 'bg-slate-50 border-slate-200'
         }`}>
-          {result.lastSale && (
-            <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-700">{result.lastSale.address}</p>
-              <div className="flex gap-4 text-xs text-slate-500">
-                <span>Last sold <strong>{formatCurrency(result.lastSale.price, 'GBP')}</strong></span>
-                <span>{result.lastSale.date?.slice(0, 7)}</span>
-                <span>{result.lastSale.propertyType}</span>
-              </div>
-              {result.estimatedValue && (
-                <div className="flex items-center justify-between pt-1 border-t border-current/10 mt-2">
-                  <p className="text-sm font-bold text-slate-800">Estimated today</p>
-                  <p className="text-lg font-black text-slate-800">{formatCurrency(result.estimatedValue, 'GBP')}</p>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-semibold text-slate-700">Estimated value today</p>
+            <p className="text-xl font-black text-slate-900">{formatCurrency(result.estimatedValue, 'GBP')}</p>
+          </div>
           <p className="text-[10px] text-slate-400 leading-snug">{result.disclaimer}</p>
         </div>
       )}
 
+      {result && result.sales.length === 0 && (
+        <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
+          No sold properties found for this postcode. Enter the value manually below.
+        </p>
+      )}
+
+      {/* Property name */}
       <Field label="Property name or address">
-        <TextInput placeholder="e.g. 12 Acacia Avenue" value={data.name || ''} onChange={v => onChange({ name: v })} />
+        <TextInput
+          placeholder="e.g. Flat 4, Kings Reach, Slough"
+          value={data.name || ''}
+          onChange={v => onChange({ name: v })}
+        />
       </Field>
 
-      <button onClick={() => setShowManual(s => !s)} className="text-xs text-slate-400 hover:text-slate-600">
+      {/* Manual value override */}
+      <button
+        onClick={() => setShowManual(s => !s)}
+        className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+      >
         Enter value manually instead
       </button>
 
-      {(showManual || !result?.estimatedValue) && (
-        <Field label="Current value" hint="Use a recent valuation or the auto-estimated price above">
+      {(showManual || (!result?.estimatedValue && !loading)) && (
+        <Field label="Current value" hint="Use a recent estate agent valuation or mortgage offer">
           <CurrencyInput
             value={overrideValue || (data.value ? String(data.value) : '')}
             onChange={v => {

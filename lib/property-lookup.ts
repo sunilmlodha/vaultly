@@ -5,58 +5,125 @@ export interface PropertySale {
   address: string
   postcode: string
   price: number
-  date: string          // ISO date of last sale
-  propertyType: string  // D=Detached, S=Semi-detached, T=Terraced, F=Flat
+  date: string          // YYYY-MM-DD normalised
+  displayDate: string   // e.g. "November 2024"
+  propertyType: string  // Detached | Semi-detached | Terraced | Flat | Other
 }
 
 export interface PropertyEstimate {
-  lastSale: PropertySale | null
+  sales: PropertySale[]            // all recent sales at this postcode
+  selectedSale: PropertySale | null
   estimatedValue: number | null
   yearsSinceSale: number | null
-  annualGrowthPct: number     // applied HPI growth rate
+  annualGrowthPct: number
   confidence: 'high' | 'medium' | 'low'
   disclaimer: string
 }
 
-// ONS regional annual house price growth (approximate 5-year average to 2024)
-// Source: ONS UK House Price Index
+// ONS regional annual house price growth (5-year average to 2024)
 const REGIONAL_HPI: Record<string, number> = {
-  // London postcodes
   E: 3.8, EC: 3.2, N: 4.1, NW: 4.3, SE: 4.0, SW: 3.9, W: 3.5, WC: 3.1,
-  // South East
   AL: 4.2, BN: 4.5, BR: 4.3, CB: 5.1, CM: 4.8, CT: 4.6, DA: 4.4,
   EN: 4.5, GU: 4.3, HP: 4.1, KT: 4.0, LU: 5.2, ME: 4.7, MK: 5.3,
   OX: 4.4, RG: 4.2, RH: 4.5, SL: 4.1, SM: 4.2, SN: 4.8, SO: 4.3,
   SP: 4.1, SS: 5.0, TN: 4.8, TW: 4.0,
-  // South West
   BA: 4.6, BH: 4.3, BS: 5.5, DT: 3.9, EX: 4.2, GL: 4.8, PL: 3.8,
   TA: 3.7, TQ: 3.5, TR: 3.6,
-  // East Midlands
   DE: 5.1, LE: 5.3, LN: 4.4, NG: 5.2, NN: 4.9, PE: 4.6,
-  // West Midlands
   B: 5.4, CV: 4.8, DY: 4.9, ST: 4.3, TF: 4.5, WR: 4.7, WS: 4.8, WV: 4.6,
-  // Yorkshire
   BD: 4.8, DN: 4.5, HD: 4.7, HG: 4.3, HU: 4.2, HX: 4.8, LS: 5.6,
   S: 5.1, WF: 5.0, YO: 4.6,
-  // North West
   BB: 4.9, BL: 4.7, CH: 4.6, CW: 4.8, FY: 4.1, L: 5.3, LA: 4.0,
   M: 6.1, OL: 5.0, PR: 4.8, SK: 5.0, WA: 5.1, WN: 4.9,
-  // North East
   DH: 4.2, DL: 3.9, NE: 4.5, SR: 3.8, TS: 3.6,
-  // East
   CO: 4.9, IP: 5.0, NR: 5.1, SG: 5.0,
-  // Wales
   CF: 5.2, LD: 3.5, LL: 3.8, NP: 4.6, SA: 4.1, SY: 3.9,
-  // Scotland
   AB: 3.2, DD: 4.1, EH: 5.8, FK: 4.3, G: 5.0, IV: 2.8, KA: 3.9,
   KY: 4.5, ML: 4.2, PA: 3.7, PH: 3.5, TD: 3.1,
-  // Northern Ireland
   BT: 4.8,
 }
 
 function getHPIRate(postcode: string): number {
   const prefix = postcode.replace(/\s/g, '').match(/^[A-Z]{1,2}/)?.[0] ?? ''
-  return REGIONAL_HPI[prefix] ?? 4.5  // UK national average fallback
+  return REGIONAL_HPI[prefix] ?? 4.5
+}
+
+// Robustly parse a date from any format the Land Registry API might return
+function parseDate(raw: unknown): string {
+  if (!raw) return ''
+
+  let str: string
+  if (typeof raw === 'object' && raw !== null) {
+    // JSON-LD formats: { "@value": "..." } or { "value": "..." }
+    str = (raw as Record<string, unknown>)['@value'] as string
+      ?? (raw as Record<string, unknown>)['value'] as string
+      ?? ''
+  } else {
+    str = String(raw)
+  }
+
+  if (!str) return ''
+
+  // Already ISO YYYY-MM-DD or YYYY-MM-DDThh:mm:ss
+  const isoMatch = str.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (isoMatch) return isoMatch[1]
+
+  // Try JS Date parsing as fallback
+  const d = new Date(str)
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().slice(0, 10)
+  }
+
+  return str
+}
+
+function formatDisplayDate(isoDate: string): string {
+  if (!isoDate || isoDate.length < 7) return isoDate
+  try {
+    const [y, m] = isoDate.split('-')
+    const d = new Date(Number(y), Number(m) - 1, 1)
+    return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+  } catch {
+    return isoDate
+  }
+}
+
+function buildAddress(addr: Record<string, string | undefined>): string {
+  // saon = Secondary Addressable Object Name (e.g. flat/apartment number)
+  // paon = Primary Addressable Object Name (e.g. house number or block name)
+  return [addr?.saon, addr?.paon, addr?.street, addr?.town]
+    .filter(Boolean)
+    .map(s => String(s).toUpperCase())
+    .join(', ')
+}
+
+function estimateValue(sale: PropertySale, postcode: string): {
+  estimatedValue: number
+  yearsSinceSale: number
+  annualGrowthPct: number
+  confidence: 'high' | 'medium' | 'low'
+  disclaimer: string
+} {
+  const annualGrowthPct = getHPIRate(postcode)
+  const yearsSinceSale = sale.date
+    ? (Date.now() - new Date(sale.date).getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    : 5
+
+  const growthMultiplier = Math.pow(1 + annualGrowthPct / 100, yearsSinceSale)
+  const estimatedValue = Math.round(sale.price * growthMultiplier)
+
+  const confidence: 'high' | 'medium' | 'low' =
+    yearsSinceSale < 2 ? 'high' : yearsSinceSale < 5 ? 'medium' : 'low'
+
+  const yearsLabel = yearsSinceSale < 1
+    ? 'less than a year ago'
+    : `${Math.round(yearsSinceSale)} year${yearsSinceSale >= 1.5 ? 's' : ''} ago`
+
+  const disclaimer =
+    `Estimated using ${annualGrowthPct.toFixed(1)}% regional annual growth (ONS HPI). ` +
+    `Last sold ${yearsLabel}. Actual value may differ significantly — consider a professional RICS valuation.`
+
+  return { estimatedValue, yearsSinceSale, annualGrowthPct, confidence, disclaimer }
 }
 
 export async function lookupProperty(postcode: string): Promise<PropertyEstimate> {
@@ -65,71 +132,80 @@ export async function lookupProperty(postcode: string): Promise<PropertyEstimate
     ? `${clean.slice(0, -3)} ${clean.slice(-3)}`
     : clean
 
+  const noData: PropertyEstimate = {
+    sales: [], selectedSale: null, estimatedValue: null, yearsSinceSale: null,
+    annualGrowthPct: getHPIRate(postcode), confidence: 'low',
+    disclaimer: 'No recent sale found for this postcode. Enter the value manually.',
+  }
+
   try {
-    // Land Registry Price Paid Data API (free, no auth)
-    const url = `https://landregistry.data.gov.uk/data/ppi/transaction-record.json` +
+    const url =
+      `https://landregistry.data.gov.uk/data/ppi/transaction-record.json` +
       `?propertyAddress.postcode=${encodeURIComponent(formatted)}` +
-      `&_pageSize=5&_sort=-transactionDate`
+      `&_pageSize=10&_sort=-transactionDate`
 
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     })
 
-    if (!res.ok) throw new Error(`Land Registry returned ${res.status}`)
+    if (!res.ok) throw new Error(`Land Registry ${res.status}`)
     const data = await res.json()
 
-    const items = data?.result?.items
-    if (!items || items.length === 0) {
-      return {
-        lastSale: null, estimatedValue: null, yearsSinceSale: null,
-        annualGrowthPct: getHPIRate(postcode), confidence: 'low',
-        disclaimer: 'No recent sale found for this postcode. Enter the value manually.',
-      }
-    }
-
-    const latest = items[0]
-    const price = Number(latest.pricePaid)
-    const saleDate = latest.transactionDate?.['@value'] ?? latest.transactionDate ?? ''
-    const address = [
-      latest.propertyAddress?.paon,
-      latest.propertyAddress?.street,
-      latest.propertyAddress?.town,
-    ].filter(Boolean).join(', ')
+    const items: Record<string, unknown>[] = data?.result?.items ?? []
+    if (items.length === 0) return noData
 
     const propType: Record<string, string> = {
-      D: 'Detached', S: 'Semi-detached', T: 'Terraced', F: 'Flat/Maisonette', O: 'Other'
+      D: 'Detached', S: 'Semi-detached', T: 'Terraced', F: 'Flat/Maisonette', O: 'Other',
     }
 
-    const lastSale: PropertySale = {
-      address: address || formatted,
-      postcode: formatted,
-      price,
-      date: saleDate,
-      propertyType: propType[latest.propertyType] ?? 'Unknown',
+    // Build a deduplicated list — one entry per unique address, keeping the most recent sale
+    const seen = new Set<string>()
+    const sales: PropertySale[] = []
+
+    for (const item of items) {
+      const addr = item.propertyAddress as Record<string, string | undefined> | undefined
+      const address = buildAddress(addr ?? {}) || formatted
+      if (seen.has(address)) continue
+      seen.add(address)
+
+      const rawDate = (item.transactionDate as unknown)
+      const date = parseDate(rawDate)
+      const price = Number(item.pricePaid)
+      if (!price || isNaN(price)) continue
+
+      sales.push({
+        address,
+        postcode: formatted,
+        price,
+        date,
+        displayDate: formatDisplayDate(date),
+        propertyType: propType[item.propertyType as string] ?? 'Property',
+      })
     }
 
-    // Estimate current value using regional HPI
-    const annualGrowthPct = getHPIRate(postcode)
-    const yearsSinceSale = saleDate
-      ? (Date.now() - new Date(saleDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25)
-      : 5
+    if (sales.length === 0) return noData
 
-    const growthMultiplier = Math.pow(1 + annualGrowthPct / 100, yearsSinceSale)
-    const estimatedValue = Math.round(price * growthMultiplier)
+    // Use most recent sale as default selection
+    const selectedSale = sales[0]
+    const est = estimateValue(selectedSale, postcode)
 
-    const confidence = yearsSinceSale < 2 ? 'high' : yearsSinceSale < 5 ? 'medium' : 'low'
-    const disclaimer = `Estimated using ${annualGrowthPct.toFixed(1)}% regional annual growth (ONS HPI). ` +
-      `Last sold ${Math.round(yearsSinceSale)} year${yearsSinceSale > 1 ? 's' : ''} ago. ` +
-      `Actual value may differ — consider a professional valuation.`
-
-    return { lastSale, estimatedValue, yearsSinceSale, annualGrowthPct, confidence, disclaimer }
+    return {
+      sales,
+      selectedSale,
+      ...est,
+    }
   } catch (err) {
     console.error('[property-lookup]', err)
     return {
-      lastSale: null, estimatedValue: null, yearsSinceSale: null,
+      sales: [], selectedSale: null, estimatedValue: null, yearsSinceSale: null,
       annualGrowthPct: getHPIRate(postcode), confidence: 'low',
-      disclaimer: 'Could not retrieve Land Registry data. Enter the value manually.',
+      disclaimer: 'Could not retrieve Land Registry data. Please enter the value manually.',
     }
   }
+}
+
+// Re-estimate when a different sale is selected
+export function estimateForSale(sale: PropertySale, postcode: string) {
+  return estimateValue(sale, postcode)
 }
