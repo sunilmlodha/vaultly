@@ -1,11 +1,3 @@
-/**
- * Auth setup — runs once before all regression tests.
- * Logs in with test credentials and saves session state to fixture file.
- * All regression tests load this state so they skip the login step.
- *
- * Set TEST_EMAIL / TEST_PASSWORD environment variables, or use the defaults.
- */
-
 import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
@@ -17,19 +9,31 @@ setup('authenticate', async ({ page }) => {
   const password = process.env.TEST_PASSWORD || 'TestPassword123!'
 
   await page.goto('/login')
-  await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible()
+  await page.waitForLoadState('networkidle')
 
-  await page.getByLabel(/email/i).fill(email)
-  await page.getByLabel(/password/i).fill(password)
+  // Dismiss cookie banner if present
+  const acceptBtn = page.getByRole('button', { name: /accept all/i })
+    .or(page.getByRole('button', { name: /essential only/i }))
+  if (await acceptBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
+    await acceptBtn.first().click()
+    await page.waitForTimeout(500)
+  }
+
+  // Page heading is "Welcome back"
+  await expect(page.getByText(/welcome back/i)).toBeVisible({ timeout: 10000 })
+
+  // Fill email + password
+  await page.getByPlaceholder('you@example.com').fill(email)
+  await page.getByPlaceholder('••••••••').fill(password)
   await page.getByRole('button', { name: /sign in/i }).click()
 
   // Wait for redirect to dashboard
-  await page.waitForURL('**/dashboard', { timeout: 15_000 })
+  await page.waitForURL('**/dashboard', { timeout: 20000 })
   await expect(page).toHaveURL(/dashboard/)
 
-  // Ensure fixtures directory exists
+  // Save session
   const dir = path.dirname(AUTH_FILE)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-
   await page.context().storageState({ path: AUTH_FILE })
+  console.log('✅ Auth session saved to', AUTH_FILE)
 })

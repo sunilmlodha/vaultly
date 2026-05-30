@@ -210,12 +210,11 @@ function EditModal({ asset, open, onClose, onSave }: {
 
 export default function AssetsPage() {
   const { data: session } = useSession()
-  const { assets, loading, add, update, remove, totalValue } = useAssets()
+  const { assets, loading, add, update, remove, totalValue, load } = useAssets()
   const [wizardOpen, setWizardOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const [activeTab, setActiveTab] = useState('all')
-  const { load } = useAssets()
 
   const connectBank = async () => {
     const res = await fetch('/api/connections/auth')
