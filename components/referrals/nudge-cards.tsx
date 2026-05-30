@@ -103,7 +103,14 @@ export function ReferralNudges({ maxVisible = 2 }: { maxVisible?: number }) {
     setDismissed(prev => new Set([...prev, key]))
   }
 
-  if (loading || visible.length === 0) return null
+  if (loading) return (
+    <div className="space-y-3">
+      <div className="h-3 w-40 bg-slate-100 rounded animate-pulse" />
+      <div className="h-28 bg-slate-50 rounded-2xl border border-slate-100 animate-pulse" />
+    </div>
+  )
+
+  if (visible.length === 0) return null
 
   return (
     <div className="space-y-3">

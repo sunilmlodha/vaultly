@@ -363,13 +363,14 @@ export async function getEligibleNudges(
 ): Promise<ReferralNudge[]> {
   const snapshot = await buildSnapshot(userId, householdId)
 
-  // Check which nudges have been shown/dismissed recently (don't spam)
-  const recentRes = await db.execute({
+  // Only hide nudges the user has DISMISSED or CLICKED (acted on)
+  // Being "shown" doesn't hide them — nudges persist until dismissed
+  const actedRes = await db.execute({
     sql: `SELECT trigger_key FROM referral_nudges
-          WHERE user_id = ? AND (shown_at > datetime('now', '-30 days') OR dismissed_at IS NOT NULL)`,
+          WHERE user_id = ? AND (dismissed_at IS NOT NULL OR clicked_at IS NOT NULL)`,
     args: [userId],
   })
-  const recentKeys = new Set(recentRes.rows.map(r => r.trigger_key as string))
+  const recentKeys = new Set(actedRes.rows.map(r => r.trigger_key as string))
 
   const nudges: ReferralNudge[] = []
 
@@ -400,8 +401,11 @@ export async function logNudgeShown(userId: string, triggerKey: string, partnerI
 export async function logNudgeClick(userId: string, triggerKey: string) {
   await db.execute({
     sql: `UPDATE referral_nudges SET clicked_at = datetime('now')
-          WHERE user_id = ? AND trigger_key = ? AND clicked_at IS NULL
-          ORDER BY created_at DESC LIMIT 1`,
+          WHERE id = (
+            SELECT id FROM referral_nudges
+            WHERE user_id = ? AND trigger_key = ? AND clicked_at IS NULL
+            ORDER BY created_at DESC LIMIT 1
+          )`,
     args: [userId, triggerKey],
   })
 }
@@ -409,8 +413,11 @@ export async function logNudgeClick(userId: string, triggerKey: string) {
 export async function logNudgeDismiss(userId: string, triggerKey: string) {
   await db.execute({
     sql: `UPDATE referral_nudges SET dismissed_at = datetime('now')
-          WHERE user_id = ? AND trigger_key = ? AND dismissed_at IS NULL
-          ORDER BY created_at DESC LIMIT 1`,
+          WHERE id = (
+            SELECT id FROM referral_nudges
+            WHERE user_id = ? AND trigger_key = ? AND dismissed_at IS NULL
+            ORDER BY created_at DESC LIMIT 1
+          )`,
     args: [userId, triggerKey],
   })
 }
