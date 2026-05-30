@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, MapPin, Info } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { AssetGroup } from './category-picker'
@@ -305,40 +305,55 @@ export function CryptoForm({ data, onChange }: { data: Partial<AssetFormData> & 
 
 export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>; onChange: (d: Partial<AssetFormData>) => void }) {
   const { postcode, setPostcode, result, loading, selectingLoading, error, lookup, selectSale } = usePropertyLookup()
-  const [overrideValue, setOverrideValue] = useState('')
+
+  // Track whether the user has manually edited the name field
+  const userEditedName = useRef(false)
+  // Local name state — decoupled from parent so typing works freely
+  const [localName, setLocalName] = useState('')
   const [showManual, setShowManual] = useState(false)
-  const [hasApplied, setHasApplied] = useState(false)
+  const [localValue, setLocalValue] = useState('')
 
-  // Apply estimate when a sale is selected and form hasn't been manually edited
-  const applySale = (sale: typeof result extends null ? never : NonNullable<typeof result>['selectedSale'], est: typeof result) => {
-    if (!sale || !est) return
-    onChange({
-      value: est.estimatedValue ?? sale.price,
-      currency: 'GBP',
-      name: data.name || sale.address,
-      notes: est.disclaimer,
-    })
-    setHasApplied(true)
-  }
+  // When selectedSale changes, update name + value — but NEVER overwrite if user has typed
+  const prevAddress = useRef<string | null>(null)
+  useEffect(() => {
+    const sale = result?.selectedSale
+    if (!sale) return
+    if (sale.address === prevAddress.current) return // same property, no-op
+    prevAddress.current = sale.address
 
-  // Auto-apply when result first loads
-  if (result && result.selectedSale && result.estimatedValue && !hasApplied && !overrideValue) {
-    applySale(result.selectedSale, result)
+    // Update estimated value always (user chose this property)
+    const est = result?.estimatedValue ?? sale.price
+    onChange({ value: est, currency: 'GBP', notes: result?.disclaimer ?? '' })
+    setLocalValue('')
+
+    // Only update name if user hasn't typed their own
+    if (!userEditedName.current) {
+      setLocalName(sale.address)
+      onChange({ name: sale.address, value: est, currency: 'GBP', notes: result?.disclaimer ?? '' })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.selectedSale?.address])
+
+  const handleNameChange = (v: string) => {
+    userEditedName.current = true
+    setLocalName(v)
+    onChange({ name: v })
   }
 
   const handleSelectSale = async (sale: NonNullable<typeof result>['sales'][0]) => {
+    // Selecting a new property resets the name override
+    userEditedName.current = false
     await selectSale(sale)
-    // After selectSale updates result, re-apply
-    setHasApplied(false)
-    setOverrideValue('')
   }
 
   const selected = result?.selectedSale
+  const displayName = localName || data.name || ''
 
   return (
     <div className="space-y-4">
+
       {/* Postcode lookup */}
-      <Field label="UK Postcode" hint="Land Registry will look up sold prices at this postcode">
+      <Field label="UK Postcode" hint="We look up sold prices via Land Registry — free and automatic">
         <div className="flex gap-2">
           <div className="flex-1 flex items-center rounded-xl border border-slate-200 focus-within:ring-2 focus-within:ring-amber-300 bg-white">
             <MapPin size={14} className="ml-3 text-slate-400 shrink-0" />
@@ -346,14 +361,14 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
               className="flex-1 px-3 py-2.5 text-sm bg-transparent focus:outline-none uppercase tracking-widest"
               placeholder="e.g. SL3 7RQ"
               value={postcode}
-              onChange={e => { setPostcode(e.target.value.toUpperCase()); setHasApplied(false) }}
+              onChange={e => setPostcode(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === 'Enter' && lookup()}
               autoFocus
             />
           </div>
           <button
             onClick={lookup}
-            disabled={loading || postcode.length < 5}
+            disabled={loading || postcode.replace(/\s/g, '').length < 5}
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shrink-0"
           >
             {loading ? (
@@ -365,15 +380,13 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
 
       {error && <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
 
-      {/* Property picker — show all properties at postcode */}
+      {/* Property list — pick yours */}
       {result && result.sales.length > 0 && (
         <div className="space-y-2">
-          {result.sales.length > 1 && (
-            <p className="text-xs font-medium text-slate-500">
-              {result.sales.length} properties found — select yours:
-            </p>
-          )}
-          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+          <p className="text-xs font-semibold text-slate-500">
+            {result.sales.length} {result.sales.length === 1 ? 'property' : 'properties'} found — tap yours:
+          </p>
+          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             {result.sales.map((sale, i) => {
               const isSelected = selected?.address === sale.address
               return (
@@ -381,22 +394,24 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
                   key={i}
                   onClick={() => handleSelectSale(sale)}
                   disabled={selectingLoading}
-                  className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
+                  className={`w-full text-left px-4 py-3 rounded-xl border transition-all disabled:opacity-60 ${
                     isSelected
-                      ? 'bg-amber-50 border-amber-300 ring-1 ring-amber-300'
-                      : 'bg-white border-slate-200 hover:border-amber-200 hover:bg-amber-50/30'
+                      ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-300'
+                      : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/40'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 truncate">{sale.address}</p>
+                      <p className={`text-xs font-semibold truncate ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}>
+                        {sale.address}
+                      </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
                         {sale.propertyType} · Sold {formatCurrency(sale.price, 'GBP')} · {sale.displayDate}
                       </p>
                     </div>
                     {isSelected && (
                       <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-                        <svg viewBox="0 0 12 12" className="w-3 h-3 fill-white"><path d="M10 3L5 8.5 2 5.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg viewBox="0 0 12 12" className="w-3 h-3"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </span>
                     )}
                   </div>
@@ -407,7 +422,13 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
         </div>
       )}
 
-      {/* Estimate card for selected property */}
+      {result && result.sales.length === 0 && (
+        <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
+          No sold properties found for this postcode. Enter details manually below.
+        </p>
+      )}
+
+      {/* Estimate */}
       {result && selected && result.estimatedValue && (
         <div className={`rounded-2xl border p-4 ${
           result.confidence === 'high' ? 'bg-emerald-50 border-emerald-200'
@@ -422,35 +443,34 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
         </div>
       )}
 
-      {result && result.sales.length === 0 && (
-        <p className="text-xs text-slate-500 bg-slate-50 rounded-xl px-3 py-2">
-          No sold properties found for this postcode. Enter the value manually below.
-        </p>
-      )}
-
-      {/* Property name */}
-      <Field label="Property name or address">
+      {/* Property name — always editable */}
+      <Field label="Property name or address" hint="Edit this to match your exact property">
         <TextInput
           placeholder="e.g. Flat 4, Kings Reach, Slough"
-          value={data.name || ''}
-          onChange={v => onChange({ name: v })}
+          value={displayName}
+          onChange={handleNameChange}
         />
+        {selected && !userEditedName.current && (
+          <p className="text-[11px] text-slate-400 mt-1">
+            Auto-filled from Land Registry · edit freely
+          </p>
+        )}
       </Field>
 
-      {/* Manual value override */}
+      {/* Manual value */}
       <button
         onClick={() => setShowManual(s => !s)}
         className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
       >
-        Enter value manually instead
+        {showManual ? 'Hide manual value' : 'Override value manually'}
       </button>
 
       {(showManual || (!result?.estimatedValue && !loading)) && (
-        <Field label="Current value" hint="Use a recent estate agent valuation or mortgage offer">
+        <Field label="Current value" hint="Use an estate agent valuation or mortgage offer">
           <CurrencyInput
-            value={overrideValue || (data.value ? String(data.value) : '')}
+            value={localValue || (data.value ? String(data.value) : '')}
             onChange={v => {
-              setOverrideValue(v)
+              setLocalValue(v)
               onChange({ value: parseFloat(v) || 0 })
             }}
           />
