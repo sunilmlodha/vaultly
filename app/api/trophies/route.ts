@@ -3,15 +3,27 @@ import { auth } from '@/lib/auth'
 import { getUserTrophies, checkAndAwardTrophies } from '@/lib/trophies'
 import { db } from '@/lib/db'
 
-// GET — fast display-only path (just reads what's already earned + definitions)
-// checkAndAwardTrophies is intentionally NOT called here to avoid timeouts.
-// Trophies are checked/awarded lazily via POST /api/trophies/check.
+// Resolve householdId — falls back to DB lookup for old session tokens
+async function getHouseholdId(userId: string, sessionValue: unknown): Promise<string | null> {
+  if (sessionValue && typeof sessionValue === 'string') return sessionValue
+  const res = await db.execute({
+    sql: 'SELECT household_id FROM users WHERE id = ?',
+    args: [userId],
+  })
+  return (res.rows[0]?.household_id as string) ?? null
+}
+
+// GET — fast display-only (reads earned trophies + definitions)
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const userId = session.user.id
-  const householdId = (session.user as Record<string, unknown>).householdId as string
+  const householdId = await getHouseholdId(
+    userId,
+    (session.user as Record<string, unknown>).householdId
+  )
+
   if (!householdId) return NextResponse.json({ error: 'No household' }, { status: 400 })
 
   const [trophies, xpRes] = await Promise.all([
@@ -28,13 +40,17 @@ export async function GET() {
   })
 }
 
-// POST — runs the full trophy check (call this on actions, not on every page load)
+// POST — full trophy check (expensive, runs in background)
 export async function POST() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const userId = session.user.id
-  const householdId = (session.user as Record<string, unknown>).householdId as string
+  const householdId = await getHouseholdId(
+    userId,
+    (session.user as Record<string, unknown>).householdId
+  )
+
   if (!householdId) return NextResponse.json({ error: 'No household' }, { status: 400 })
 
   const [scoreRes, streakRes, netWorthRes] = await Promise.all([

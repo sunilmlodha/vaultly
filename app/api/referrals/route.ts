@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { getEligibleNudges, logNudgeShown, logNudgeClick, logNudgeDismiss } from '@/lib/referrals/engine'
+
+
+// Resolve householdId from session or DB (handles old session tokens)
+async function getHouseholdId(userId: string, sessionValue: unknown): Promise<string | null> {
+  if (sessionValue && typeof sessionValue === 'string') return sessionValue
+  const res = await db.execute({ sql: 'SELECT household_id FROM users WHERE id = ?', args: [userId] })
+  return (res.rows[0]?.household_id as string) ?? null
+}
 
 export async function GET() {
   try {
@@ -8,7 +17,7 @@ export async function GET() {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const userId = session.user.id
-    const householdId = (session.user as Record<string, unknown>).householdId as string
+    const householdId = await getHouseholdId(userId, (session.user as Record<string, unknown>).householdId)
     if (!householdId) {
       console.error('[referrals] No householdId in session for user', userId)
       return NextResponse.json({ nudges: [] })

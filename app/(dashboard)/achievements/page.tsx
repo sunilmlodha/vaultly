@@ -60,25 +60,41 @@ export default function AchievementsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fire-and-forget trophy check in background (POST is expensive — don't block display)
+    // Independent fetches — one failure never kills the others
+    let loaded = 0
+    const done = () => { if (++loaded >= 3) setLoading(false) }
+
+    fetch('/api/trophies')
+      .then(r => r.json())
+      .then(t => {
+        setEarned(t.earned || [])
+        setLocked(t.locked || [])
+        setNewlyEarned(t.newlyEarned || [])
+      })
+      .catch(e => console.error('[achievements] trophies error', e))
+      .finally(done)
+
+    fetch('/api/missions')
+      .then(r => r.json())
+      .then(m => { setMissions(m.missions || []); if (m.xp) setXp(m.xp) })
+      .catch(e => console.error('[achievements] missions error', e))
+      .finally(done)
+
+    fetch('/api/streaks')
+      .then(r => r.json())
+      .then(s => { if (s.streak) setStreak(s.streak) })
+      .catch(e => console.error('[achievements] streaks error', e))
+      .finally(done)
+
+    // Background trophy check — runs after display loads
     fetch('/api/trophies', { method: 'POST' })
       .then(r => r.json())
-      .then(({ newlyEarned: ne }) => { if (ne?.length) setNewlyEarned(ne) })
+      .then(({ newlyEarned: ne, earned: e, locked: l }) => {
+        if (ne?.length) setNewlyEarned(ne)
+        if (e?.length) setEarned(e)
+        if (l?.length) setLocked(l)
+      })
       .catch(() => {})
-
-    Promise.all([
-      fetch('/api/trophies').then(r => r.json()),
-      fetch('/api/missions').then(r => r.json()),
-      fetch('/api/streaks').then(r => r.json()),
-    ]).then(([t, m, s]) => {
-      setEarned(t.earned || [])
-      setLocked(t.locked || [])
-      setNewlyEarned(t.newlyEarned || [])
-      setMissions(m.missions || [])
-      setXp(m.xp)
-      setStreak(s.streak)
-      setLoading(false)
-    }).catch(() => setLoading(false))
   }, [])
 
   const categories = [...new Set([...earned, ...locked].map(t => t.category))]

@@ -4,6 +4,14 @@ import { calculateVaultScore, getVaultScoreHistory, scoreLabel } from '@/lib/vau
 import { saveInAppNotification } from '@/lib/push'
 import { db } from '@/lib/db'
 
+
+// Resolve householdId from session or DB (handles old session tokens)
+async function getHouseholdId(userId: string, sessionValue: unknown): Promise<string | null> {
+  if (sessionValue && typeof sessionValue === 'string') return sessionValue
+  const res = await db.execute({ sql: 'SELECT household_id FROM users WHERE id = ?', args: [userId] })
+  return (res.rows[0]?.household_id as string) ?? null
+}
+
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) {
@@ -11,7 +19,7 @@ export async function GET() {
   }
 
   const userId = session.user.id
-  const householdId = (session.user as Record<string, unknown>).householdId as string
+  const householdId = await getHouseholdId(userId, (session.user as Record<string, unknown>).householdId)
 
   if (!householdId) {
     return NextResponse.json({ error: 'No household found' }, { status: 400 })
