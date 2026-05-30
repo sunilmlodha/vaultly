@@ -1,5 +1,6 @@
 'use client'
 import { getInitials } from '@/lib/utils'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 interface TopbarProps {
   title: string
@@ -15,8 +16,9 @@ export function Topbar({ title, subtitle, userName, actions }: TopbarProps) {
         <h1 className="text-lg font-bold text-slate-800">{title}</h1>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {actions}
+        <NotificationBell />
         {userName && (
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-bold">
             {getInitials(userName)}

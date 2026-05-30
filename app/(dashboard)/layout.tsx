@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { AppLockProvider } from '@/components/auth/app-lock-provider'
 import { UserPrefsProvider } from '@/components/providers/user-prefs-provider'
+import { PushPermissionBanner } from '@/components/notifications/push-permission'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
@@ -19,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </main>
           <MobileNav />
         </div>
+        <PushPermissionBanner />
       </AppLockProvider>
     </UserPrefsProvider>
   )

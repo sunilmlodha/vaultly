@@ -4,6 +4,8 @@ import { Topbar } from '@/components/layout/topbar'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { NetWorthChart } from '@/components/dashboard/net-worth-chart'
 import { AssetBreakdown } from '@/components/dashboard/asset-breakdown'
+import { VaultScoreCard } from '@/components/dashboard/vault-score-card'
+import { WealthNarrativeCard } from '@/components/dashboard/wealth-narrative-card'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Wallet, CreditCard, TrendingUp, RefreshCw, Landmark, AlertTriangle } from 'lucide-react'
@@ -96,6 +98,12 @@ export default async function DashboardPage() {
           <StatCard title="Total Assets" value={totalAssets} currency={userCurrency} icon={Wallet} color="emerald" subtitle={`${assets.length} items`} />
           <StatCard title="Liabilities" value={totalLiabilities} currency={userCurrency} icon={CreditCard} color="rose" subtitle={`${liabilities.length} items`} />
           <StatCard title="Due Renewals" value={upcomingRenewals.reduce((s, r) => s + Number(r.amount), 0)} currency={userCurrency} icon={RefreshCw} color="amber" subtitle={`${upcomingRenewals.length} in 30 days`} />
+        </div>
+
+        {/* Vault Score + Narrative */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <VaultScoreCard />
+          <WealthNarrativeCard />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
