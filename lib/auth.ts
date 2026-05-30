@@ -166,11 +166,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
 
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         token.householdId = (user as any).householdId as string
+      }
+      // Backfill householdId for sessions created before it was added to the token
+      if (token.id && !token.householdId) {
+        try {
+          const res = await db.execute({
+            sql: 'SELECT household_id FROM users WHERE id = ?',
+            args: [token.id as string],
+          })
+          token.householdId = res.rows[0]?.household_id as string
+        } catch { /* non-critical */ }
       }
       return token
     },

@@ -60,6 +60,12 @@ export default function AchievementsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Fire-and-forget trophy check in background (POST is expensive — don't block display)
+    fetch('/api/trophies', { method: 'POST' })
+      .then(r => r.json())
+      .then(({ newlyEarned: ne }) => { if (ne?.length) setNewlyEarned(ne) })
+      .catch(() => {})
+
     Promise.all([
       fetch('/api/trophies').then(r => r.json()),
       fetch('/api/missions').then(r => r.json()),
