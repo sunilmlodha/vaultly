@@ -6,6 +6,8 @@ import { NetWorthChart } from '@/components/dashboard/net-worth-chart'
 import { AssetBreakdown } from '@/components/dashboard/asset-breakdown'
 import { VaultScoreCard } from '@/components/dashboard/vault-score-card'
 import { WealthNarrativeCard } from '@/components/dashboard/wealth-narrative-card'
+import { MissionsCard } from '@/components/dashboard/missions-card'
+import { StreakBadge } from '@/components/dashboard/streak-badge'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Wallet, CreditCard, TrendingUp, RefreshCw, Landmark, AlertTriangle } from 'lucide-react'
@@ -56,6 +58,7 @@ export default async function DashboardPage() {
         title={`Good to see you${session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ''}!`}
         subtitle="Your financial overview"
         userName={session?.user?.name ?? ''}
+        actions={<StreakBadge />}
       />
       <div className="p-4 md:p-8 space-y-6 animate-fade-in">
         {/* Open Banking onboarding banner */}
@@ -105,6 +108,9 @@ export default async function DashboardPage() {
           <VaultScoreCard />
           <WealthNarrativeCard />
         </div>
+
+        {/* Missions */}
+        <MissionsCard />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
