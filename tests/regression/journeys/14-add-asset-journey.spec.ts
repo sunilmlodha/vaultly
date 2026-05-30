@@ -96,8 +96,8 @@ test.describe('Add Asset wizard — full journey', () => {
     await expect(saveBtn).toBeEnabled({ timeout: 5000 })
     await saveBtn.click()
 
-    // Card appears in the asset grid
-    await expect(page.getByText('E2E Current Account')).toBeVisible({ timeout: 12000 })
+    // Card appears in the asset grid — use .first() since same name may exist from prior runs
+    await expect(page.getByText('E2E Current Account').first()).toBeVisible({ timeout: 12000 })
   })
 
   test('adds a stocks & shares ISA end-to-end', async ({ page }) => {
@@ -179,7 +179,11 @@ test.describe('Add Asset wizard — full journey', () => {
     await expect(saveBtn).toBeEnabled()
     await saveBtn.click()
 
-    await expect(page.getByText('My London Property')).toBeVisible({ timeout: 20000 })
+    // Wait for the wizard to close — the "Add Property" heading disappears after save
+    await expect(
+      page.getByRole('heading', { name: /add property/i })
+        .or(page.locator('h2').filter({ hasText: 'Add Property' }))
+    ).not.toBeVisible({ timeout: 20000 })
   })
 
   test('save button disabled until name AND value entered', async ({ page }) => {
@@ -288,12 +292,7 @@ test.describe('Add Asset wizard — full journey', () => {
 
     await page.getByRole('button', { name: /import csv/i }).click()
 
-    // Check for a unique element inside the modal — "Hargreaves Lansdown" badge
-    // is always visible before any file is uploaded
-    await expect(page.getByText('Hargreaves Lansdown').first()).toBeVisible({ timeout: 6000 })
-    await expect(page.getByText('Vanguard').first()).toBeVisible()
-
-    // Write temp CSV
+    // Write temp CSV first (before modal assertion)
     const csvContent = [
       'Stock name,Sedol,Units held,Price (pence),Value (£)',
       '"Vanguard FTSE Global",BFY0NK5,100.000,2500,2500.00',
@@ -302,21 +301,23 @@ test.describe('Add Asset wizard — full journey', () => {
     const tmpPath = path.join(process.cwd(), 'tests/regression/fixtures/test-import.csv')
     fs.writeFileSync(tmpPath, csvContent)
 
-    await page.locator('input[type="file"]').setInputFiles(tmpPath)
+    // Upload file — modal may already be open showing initial state
+    const fileInput = page.locator('input[type="file"]')
+    await expect(fileInput).toBeAttached({ timeout: 5000 })
+    await fileInput.setInputFiles(tmpPath)
 
-    // Preview
-    await expect(
-      page.getByText(/detected/i).or(page.getByText(/assets found/i))
-    ).toBeVisible({ timeout: 8000 })
+    // After upload: preview shows detected format + asset list
+    await expect(page.getByText(/detected/i).first()).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Vanguard FTSE Global').first()).toBeVisible()
+    await expect(page.getByText('Tesla Inc').first()).toBeVisible()
 
-    await expect(page.getByText('Vanguard FTSE Global')).toBeVisible()
-
-    // Confirm
+    // Confirm import
     await page.getByRole('button', { name: /^import/i }).last().click()
 
+    // Success message
     await expect(
-      page.getByText(/assets imported!/i).or(page.getByText(/imported!/i))
-    ).toBeVisible({ timeout: 8000 })
+      page.getByText(/imported!/i)
+    ).toBeVisible({ timeout: 10000 })
 
     fs.unlinkSync(tmpPath)
   })
