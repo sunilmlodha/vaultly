@@ -9,6 +9,7 @@ import { WealthNarrativeCard } from '@/components/dashboard/wealth-narrative-car
 import { MissionsCard } from '@/components/dashboard/missions-card'
 import { StreakBadge } from '@/components/dashboard/streak-badge'
 import { ReferralNudges } from '@/components/referrals/nudge-cards'
+import { WellnessCheckinCard } from '@/components/enterprise/wellness-checkin-card'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Wallet, CreditCard, TrendingUp, RefreshCw, Landmark, AlertTriangle } from 'lucide-react'
@@ -115,6 +116,9 @@ export default async function DashboardPage() {
 
         {/* Personalised referral nudges — data-driven, max 2 shown */}
         <ReferralNudges maxVisible={2} />
+
+        {/* Weekly wellness check-in */}
+        <WellnessCheckinCard />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">

@@ -41,8 +41,10 @@ describe('GET /api/vault-score', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 400 when no householdId in session', async () => {
+  it('returns 400 when no householdId in session or DB', async () => {
     mockAuth.mockResolvedValueOnce({ user: { id: 'user-1' } })
+    // DB fallback also returns nothing
+    mockDbExecute.mockResolvedValueOnce({ rows: [] })
     const { GET } = await import('@/app/api/vault-score/route')
     const res = await GET()
     expect(res.status).toBe(400)
