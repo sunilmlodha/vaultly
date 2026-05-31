@@ -1,20 +1,16 @@
 /**
  * POST /api/india/aa/consent
- * Initiates an Account Aggregator consent request via Finvu.
- * Returns a redirect URL to the Finvu webview for user approval.
+ * Creates a Setu AA consent request.
+ * Returns webview URL to redirect user for bank approval.
+ *
+ * Sign up at bridge.setu.co/v2/signup to get credentials.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { randomUUID } from 'crypto'
-import {
-  createConsent,
-  type FIType,
-  type ConsentPurpose,
-} from '@/lib/india/aa/client'
-
-const FINVU_ENABLED = !!(process.env.FINVU_CLIENT_ID && process.env.FINVU_CLIENT_SECRET)
+import { AA_ENABLED, createConsent, type FIType } from '@/lib/india/aa/client'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -22,63 +18,73 @@ export async function POST(req: NextRequest) {
 
   const userId = session.user.id
   const body = await req.json().catch(() => ({}))
-
   const fiTypes: FIType[] = body.fiTypes ?? ['DEPOSIT', 'MUTUAL_FUNDS']
-  const consentDuration: number = body.consentDuration ?? 180
-  const purpose: ConsentPurpose = body.purpose ?? 'WEALTH_MANAGEMENT'
+  const userMobile: string = body.userMobile ?? ''
 
   const baseUrl = process.env.NEXTAUTH_URL ?? 'https://tijori-xi.vercel.app'
-  const redirectUrl = `${baseUrl}/api/india/aa/callback`
 
-  const now = new Date()
-  const fromDate = new Date(now)
-  fromDate.setFullYear(fromDate.getFullYear() - 2)  // 2 years of history
-
-  // Store pending consent in DB
-  const consentRow = randomUUID()
-
-  if (!FINVU_ENABLED) {
-    // Sandbox mode — return mock redirect for UI testing
+  // No credentials — show setup guide
+  if (!AA_ENABLED) {
     return NextResponse.json({
       sandbox: true,
-      consentHandle: `sandbox-${consentRow.slice(0, 8)}`,
-      redirectUrl: `${baseUrl}/connections/aa?demo=success&fiTypes=${fiTypes.join(',')}`,
-      message: 'Finvu credentials not configured — showing demo flow.',
+      message: 'Setu credentials not configured.',
+      setup: {
+        step1: 'Sign up free at https://bridge.setu.co/v2/signup',
+        step2: 'Create an FIU product in The Bridge dashboard',
+        step3: 'Copy your credentials and add to Vercel Tijori env vars:',
+        envVars: [
+          'SETU_CLIENT_ID=your_x_client_id',
+          'SETU_CLIENT_SECRET=your_x_client_secret',
+          'SETU_PRODUCT_INSTANCE_ID=your_product_instance_id',
+          'SETU_BASE_URL=https://fiu-sandbox.setu.co',
+        ],
+        step4: 'Redeploy Tijori — live AA connections immediately',
+        docsUrl: 'https://docs.setu.co/data/account-aggregator/quickstart',
+      },
     })
   }
 
+  // Need mobile number for VUA (Virtual User Address)
+  if (!userMobile) {
+    return NextResponse.json({ error: 'userMobile required for AA consent' }, { status: 400 })
+  }
+
   try {
+    const now = new Date()
+    const from = new Date(now)
+    from.setFullYear(from.getFullYear() - 2)
+
+    // VUA format: mobile@setu-sandbox (sandbox) or mobile@onemoney (prod)
+    const aaSuffix = (process.env.SETU_BASE_URL ?? '').includes('sandbox') ? 'setu-sandbox' : 'onemoney'
+    const userHandle = `${userMobile}@${aaSuffix}`
+
     const consent = await createConsent({
-      userId,
+      userHandle,
       fiTypes,
-      purpose,
       dataRange: {
-        from: fromDate.toISOString().split('T')[0],
+        from: from.toISOString().split('T')[0],
         to: now.toISOString().split('T')[0],
       },
-      consentDuration,
-      dataFetchFrequency: 'ONETIME',
-      redirectUrl,
+      consentDuration: { unit: 'MONTH', value: 6 },
+      redirectUrl: `${baseUrl}/api/india/aa/callback`,
     })
 
-    // Persist consent handle for callback lookup
+    // Store consent in DB
     await db.execute({
       sql: `INSERT OR REPLACE INTO aa_consents
               (id, user_id, consent_handle, fi_types, status, created_at)
             VALUES (?, ?, ?, ?, 'PENDING', datetime('now'))`,
-      args: [consentRow, userId, consent.consentHandle, JSON.stringify(fiTypes)],
-    }).catch(() => {
-      // aa_consents table may not exist yet in DB — non-critical
-    })
+      args: [randomUUID(), userId, consent.id, JSON.stringify(fiTypes)],
+    }).catch(() => {})
 
     return NextResponse.json({
-      consentHandle: consent.consentHandle,
+      consentId: consent.id,
       redirectUrl: consent.redirectUrl,
     })
   } catch (err) {
     console.error('[AA consent]', err)
     return NextResponse.json(
-      { error: 'Failed to create consent. Check Finvu credentials.' },
+      { error: `Failed to create consent: ${err instanceof Error ? err.message : err}` },
       { status: 500 }
     )
   }

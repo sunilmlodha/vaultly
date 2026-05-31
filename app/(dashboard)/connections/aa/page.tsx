@@ -96,6 +96,8 @@ function AAConnectionContent() {
   const [error, setError] = useState('')
   const [selectedTypes, setSelectedTypes] = useState(['DEPOSIT', 'MUTUAL_FUNDS'])
   const [sandboxMode, setSandboxMode] = useState(false)
+  const [sandboxSetup, setSandboxSetup] = useState<{ envVars: string[]; docsUrl: string } | null>(null)
+  const [mobileNumber, setMobileNumber] = useState('')
 
   const successAssets = searchParams.get('assets')
   const errorParam = searchParams.get('error')
@@ -116,12 +118,12 @@ function AAConnectionContent() {
       const res = await fetch('/api/india/aa/consent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fiTypes: selectedTypes }),
+        body: JSON.stringify({ fiTypes: selectedTypes, userMobile: mobileNumber }),
       })
       const data = await res.json()
       if (data.sandbox) {
-        // No real credentials — show setup instructions
         setSandboxMode(true)
+        setSandboxSetup(data.setup ?? null)
         setConnecting(false)
         return
       }
@@ -177,34 +179,50 @@ function AAConnectionContent() {
         {/* Sandbox mode — credentials not configured */}
         {sandboxMode && (
           <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="py-5 space-y-3">
+            <CardContent className="py-5 space-y-4">
               <div className="flex items-start gap-3">
                 <Info size={18} className="text-orange-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-bold text-orange-800">Finvu credentials not configured</p>
-                  <p className="text-xs text-orange-700 mt-1 leading-relaxed">
-                    To enable live Account Aggregator connections, register with Finvu and add your credentials to the Tijori Vercel project.
+                  <p className="text-sm font-bold text-orange-800">Setu credentials not configured</p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Sign up free at Setu — they handle all RBI/Sahamati compliance for you.
                   </p>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-orange-200 p-4 space-y-2 text-xs">
-                <p className="font-semibold text-slate-700">Setup steps:</p>
-                <div className="space-y-1.5 text-slate-600">
-                  <p>1. Email <span className="font-mono bg-slate-100 px-1 rounded">partnerships@finvu.in</span> to register as FIU</p>
-                  <p>2. Get your <span className="font-mono bg-slate-100 px-1 rounded">clientId</span>, <span className="font-mono bg-slate-100 px-1 rounded">clientSecret</span>, <span className="font-mono bg-slate-100 px-1 rounded">fiuId</span></p>
-                  <p>3. Add to Vercel Tijori project environment variables:</p>
-                  <div className="bg-slate-900 rounded-lg p-3 font-mono text-emerald-400 text-[11px] leading-relaxed">
-                    FINVU_CLIENT_ID=your_client_id<br/>
-                    FINVU_CLIENT_SECRET=your_secret<br/>
-                    FINVU_FIU_ID=your_fiu_id<br/>
-                    FINVU_BASE_URL=https://webvwdev.finvu.in
+              <div className="bg-white rounded-xl border border-orange-200 p-4 space-y-3 text-xs">
+                <div className="space-y-2 text-slate-600">
+                  <p><span className="font-bold text-slate-800">Step 1:</span> Sign up free at{' '}
+                    <a href="https://bridge.setu.co/v2/signup" target="_blank" rel="noopener noreferrer" className="text-orange-600 font-semibold underline">
+                      bridge.setu.co/v2/signup
+                    </a>
+                  </p>
+                  <p><span className="font-bold text-slate-800">Step 2:</span> Create an FIU product in The Bridge dashboard</p>
+                  <p><span className="font-bold text-slate-800">Step 3:</span> Copy credentials → add to Vercel Tijori env vars:</p>
+                  <div className="bg-slate-900 rounded-lg p-3 font-mono text-emerald-400 text-[11px] leading-relaxed select-all">
+                    SETU_CLIENT_ID=your_x_client_id<br/>
+                    SETU_CLIENT_SECRET=your_x_client_secret<br/>
+                    SETU_PRODUCT_INSTANCE_ID=your_product_instance_id<br/>
+                    SETU_BASE_URL=https://fiu-sandbox.setu.co
                   </div>
-                  <p>4. Redeploy Tijori → AA connections go live automatically</p>
+                  <p><span className="font-bold text-slate-800">Step 4:</span> Redeploy Tijori → live immediately in sandbox</p>
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <a
+                    href="https://bridge.setu.co/v2/signup"
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex-1 text-center py-2 bg-orange-500 text-white text-xs font-bold rounded-xl hover:bg-orange-600 transition-colors"
+                  >
+                    Sign up at Setu →
+                  </a>
+                  <a
+                    href="https://docs.setu.co/data/account-aggregator/quickstart"
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex-1 text-center py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    View docs
+                  </a>
                 </div>
               </div>
-              <p className="text-[11px] text-orange-600">
-                Sandbox available immediately after registration. Production FIU approval takes 3-6 months via RBI.
-              </p>
             </CardContent>
           </Card>
         )}
@@ -281,19 +299,37 @@ function AAConnectionContent() {
                 </button>
               ))}
             </div>
+            {/* Mobile number — required for Setu VUA */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Mobile number linked to your bank
+              </label>
+              <input
+                type="tel"
+                placeholder="9999999999"
+                maxLength={10}
+                value={mobileNumber}
+                onChange={e => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Your bank-registered mobile — used to send you a consent notification
+              </p>
+            </div>
+
             {error && <p className="text-xs text-red-600">{error}</p>}
             <button
               onClick={handleConnect}
-              disabled={connecting || selectedTypes.length === 0}
+              disabled={connecting || selectedTypes.length === 0 || mobileNumber.length < 10}
               className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-2xl transition-all"
             >
               {connecting ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Opening Finvu consent…
+                  Opening consent…
                 </span>
               ) : (
-                'Connect via Finvu Account Aggregator'
+                'Connect via Account Aggregator'
               )}
             </button>
             <p className="text-[10px] text-slate-400 text-center">

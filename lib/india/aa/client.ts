@@ -1,256 +1,228 @@
 /**
- * Finvu Account Aggregator Client
+ * Setu Account Aggregator Client
  *
- * Implements the ReBIT AA 2.0 specification as used by Finvu.
- * Sandbox docs: https://docs.finvu.in
- * Sandbox AA: SIMULATOR@finvu
- * Sandbox webview: https://webvwdev.finvu.in
- * Prod webview: https://webvw.finvu.in
+ * Uses Setu's AA Bridge — handles all Sahamati/RBI compliance for you.
+ * Sign up free at: https://bridge.setu.co/v2/signup
+ * Docs: https://docs.setu.co/data/account-aggregator
+ *
+ * Sandbox base URL: https://fiu-sandbox.setu.co
+ * Production base URL: https://fiu.setu.co
  */
-
-import { randomUUID } from 'crypto'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const FINVU_BASE_URL = process.env.FINVU_BASE_URL ?? 'https://webvwdev.finvu.in'
-const FINVU_CLIENT_ID = process.env.FINVU_CLIENT_ID ?? ''
-const FINVU_CLIENT_SECRET = process.env.FINVU_CLIENT_SECRET ?? ''
-const AA_HANDLE = process.env.FINVU_AA_HANDLE ?? 'SIMULATOR@finvu'
-// FIU (Financial Information User) — registered entity ID
-const FIU_ENTITY_ID = process.env.FINVU_FIU_ID ?? 'tijori-fiu-sandbox'
+const SETU_BASE_URL = process.env.SETU_BASE_URL ?? 'https://fiu-sandbox.setu.co'
+const SETU_CLIENT_ID = process.env.SETU_CLIENT_ID ?? ''
+const SETU_CLIENT_SECRET = process.env.SETU_CLIENT_SECRET ?? ''
+const SETU_PRODUCT_INSTANCE_ID = process.env.SETU_PRODUCT_INSTANCE_ID ?? ''
+
+// Legacy Finvu env var aliases (backwards compat)
+const CLIENT_ID = SETU_CLIENT_ID || process.env.FINVU_CLIENT_ID || ''
+const CLIENT_SECRET = SETU_CLIENT_SECRET || process.env.FINVU_CLIENT_SECRET || ''
+const PRODUCT_INSTANCE_ID = SETU_PRODUCT_INSTANCE_ID || ''
+
+export const AA_ENABLED = !!(CLIENT_ID && CLIENT_SECRET && PRODUCT_INSTANCE_ID)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type FIType =
-  | 'DEPOSIT'        // Savings, current, FD accounts
-  | 'MUTUAL_FUNDS'   // MF folios
-  | 'INSURANCE'      // Life + general policies
-  | 'NPS'            // National Pension System
-  | 'EQUITIES'       // Demat / stock holdings
-  | 'ETF'            // Exchange traded funds
-  | 'BONDS'          // Government + corporate bonds
+  | 'DEPOSIT'
+  | 'MUTUAL_FUNDS'
+  | 'INSURANCE_POLICIES'
+  | 'NPS'
+  | 'EQUITIES'
+  | 'ETF'
+  | 'BONDS'
   | 'RECURRING_DEPOSIT'
   | 'TERM_DEPOSIT'
+  | 'SIP'
 
 export const FI_TYPE_LABELS: Record<FIType, string> = {
-  DEPOSIT: 'Bank Accounts & FDs',
+  DEPOSIT: 'Bank Accounts',
   MUTUAL_FUNDS: 'Mutual Funds',
-  INSURANCE: 'Insurance Policies',
-  NPS: 'National Pension System',
-  EQUITIES: 'Stocks & Shares',
+  INSURANCE_POLICIES: 'Insurance Policies',
+  NPS: 'NPS Pension',
+  EQUITIES: 'Stocks & Demat',
   ETF: 'ETF Holdings',
   BONDS: 'Bonds',
   RECURRING_DEPOSIT: 'Recurring Deposits',
   TERM_DEPOSIT: 'Fixed Deposits',
+  SIP: 'SIP / Mutual Funds',
 }
 
-export type ConsentPurpose =
-  | 'WEALTH_MANAGEMENT'
-  | 'FINANCIAL_PLANNING'
-  | 'ACCOUNT_AGGREGATION'
-
 export interface ConsentRequest {
-  userId: string
+  userHandle: string   // mobile@setu or aadhaar handle e.g. "9999999999@setu-sandbox"
   fiTypes: FIType[]
-  purpose: ConsentPurpose
-  dataRange: {         // how many months of history
-    from: string       // ISO date
-    to: string         // ISO date
-  }
-  consentDuration: number // days consent is valid
-  dataFetchFrequency: 'ONETIME' | 'PERIODIC'
-  redirectUrl: string  // where to return after consent
+  dataRange: { from: string; to: string }
+  consentDuration: { unit: 'DAY' | 'MONTH' | 'YEAR'; value: number }
+  redirectUrl: string
 }
 
 export interface ConsentResponse {
-  consentHandle: string
-  redirectUrl: string  // Finvu webview URL for user to approve
+  id: string
+  redirectUrl: string   // Setu webview URL for user approval
+  status: 'PENDING' | 'ACTIVE' | 'REJECTED' | 'REVOKED' | 'EXPIRED'
 }
 
-export interface DataSessionResponse {
-  sessionId: string
-  fiTypes: FIType[]
-}
-
-export interface FIAccount {
-  fipId: string
-  fipName: string
-  fiType: FIType
-  accType: string
-  accRefNumber: string
-  maskedAccNumber: string
-  linkedLastUpdatedOn: string
+export interface DataSession {
+  id: string
+  status: 'PENDING' | 'PARTIAL' | 'COMPLETED' | 'EXPIRED' | 'FAILED'
 }
 
 export interface FIData {
   fipId: string
   fiType: FIType
-  data: Record<string, unknown>[]  // decrypted and mapped data
+  data: Record<string, unknown>[]
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-let authToken: string | null = null
-let tokenExpiry: number = 0
+let cachedToken: string | null = null
+let tokenExpiry = 0
 
-async function getToken(): Promise<string> {
-  if (authToken && Date.now() < tokenExpiry) return authToken
+async function getBearerToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiry) return cachedToken
 
-  const res = await fetch(`${FINVU_BASE_URL}/FinvuClient/login`, {
+  // Setu uses JWT token from their auth service
+  const res = await fetch(`https://auth.setu.co/api/v1/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      clientId: FINVU_CLIENT_ID,
-      clientSecret: FINVU_CLIENT_SECRET,
+      clientID: CLIENT_ID,
+      secret: CLIENT_SECRET,
     }),
   })
 
   if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Finvu auth failed: ${err}`)
+    // Fall back to direct header auth (some Setu plans use this)
+    return ''
   }
 
   const data = await res.json()
-  authToken = data.token as string
-  tokenExpiry = Date.now() + 55 * 60 * 1000 // 55 min (tokens typically last 60)
-  return authToken
+  cachedToken = data.access_token as string
+  tokenExpiry = Date.now() + 50 * 60 * 1000  // 50 min
+  return cachedToken
 }
 
-async function finvuPost<T>(path: string, body: unknown): Promise<T> {
-  const token = await getToken()
-  const res = await fetch(`${FINVU_BASE_URL}${path}`, {
+function buildHeaders(token: string) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-product-instance-id': PRODUCT_INSTANCE_ID,
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  } else {
+    // Direct credential auth fallback
+    headers['x-client-id'] = CLIENT_ID
+    headers['x-client-secret'] = CLIENT_SECRET
+  }
+  return headers
+}
+
+async function setuPost<T>(path: string, body?: unknown): Promise<T> {
+  const token = await getBearerToken().catch(() => '')
+  const res = await fetch(`${SETU_BASE_URL}${path}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
+    headers: buildHeaders(token),
+    body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Finvu API error ${res.status}: ${err}`)
+    throw new Error(`Setu API ${res.status}: ${err}`)
   }
   return res.json() as Promise<T>
 }
 
-// ── Consent creation ──────────────────────────────────────────────────────────
+async function setuGet<T>(path: string): Promise<T> {
+  const token = await getBearerToken().catch(() => '')
+  const res = await fetch(`${SETU_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: buildHeaders(token),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Setu API ${res.status}: ${err}`)
+  }
+  return res.json() as Promise<T>
+}
+
+// ── Create consent ────────────────────────────────────────────────────────────
 
 export async function createConsent(req: ConsentRequest): Promise<ConsentResponse> {
-  const txnId = randomUUID()
-  const now = new Date()
-  const expiry = new Date(now.getTime() + req.consentDuration * 24 * 60 * 60 * 1000)
-
-  const payload = {
-    ver: '2.0.0',
-    timestamp: now.toISOString(),
-    txnid: txnId,
-    ConsentDetail: {
-      consentStart: now.toISOString(),
-      consentExpiry: expiry.toISOString(),
-      consentMode: 'VIEW',
-      fetchType: req.dataFetchFrequency,
-      consentTypes: ['TRANSACTIONS', 'SUMMARY', 'PROFILE'],
-      fiTypes: req.fiTypes,
-      Customer: {
-        id: `${req.userId}@${AA_HANDLE.split('@')[1]}`,
-      },
-      FIDataRange: {
-        from: req.dataRange.from,
-        to: req.dataRange.to,
-      },
-      DataConsumer: {
-        id: FIU_ENTITY_ID,
-      },
-      DataLife: {
-        unit: 'MONTH',
-        value: 3,
-      },
-      Frequency: {
-        unit: 'MONTH',
-        value: 1,
-      },
-      Purpose: {
-        code: '101',
-        refUri: 'https://api.rebit.org.in/aa/purpose/101.xml',
-        text: 'Wealth management service',
-        Category: {
-          type: 'string',
-        },
-      },
+  const body = {
+    consentDuration: req.consentDuration,
+    vua: req.userHandle,           // Virtual User Address
+    dataRange: {
+      from: req.dataRange.from + 'T00:00:00Z',
+      to: req.dataRange.to + 'T00:00:00Z',
+    },
+    context: [],
+    additionalParams: {
+      tags: [`tijori-${Date.now()}`],
+      redirectUrl: req.redirectUrl,
     },
   }
 
-  const response = await finvuPost<{ ConsentHandle: string }>('/FinvuClient/consent/initiate', payload)
-
-  // Build redirect URL to Finvu webview
-  const webviewUrl = new URL(`${FINVU_BASE_URL}/FinvuClient/consent/handle`)
-  webviewUrl.searchParams.set('consentHandle', response.ConsentHandle)
-  webviewUrl.searchParams.set('redirect_uri', req.redirectUrl)
+  const resp = await setuPost<{
+    id: string
+    url: string
+    status: string
+  }>('/consents', body)
 
   return {
-    consentHandle: response.ConsentHandle,
-    redirectUrl: webviewUrl.toString(),
+    id: resp.id,
+    redirectUrl: resp.url,
+    status: resp.status as ConsentResponse['status'],
   }
 }
 
-// ── Fetch consent status after user approves ──────────────────────────────────
+// ── Get consent status ────────────────────────────────────────────────────────
 
-export async function getConsentStatus(consentHandle: string): Promise<{
-  status: 'PENDING' | 'READY' | 'REJECTED' | 'REVOKED' | 'EXPIRED'
-  consentId?: string
-}> {
-  const result = await finvuPost<{ status: string; consentId?: string }>(
-    '/FinvuClient/consent/status',
-    { consentHandle }
+export async function getConsentStatus(consentId: string): Promise<ConsentResponse> {
+  const resp = await setuGet<{
+    id: string
+    url: string
+    status: string
+  }>(`/consents/${consentId}`)
+
+  return {
+    id: resp.id,
+    redirectUrl: resp.url ?? '',
+    status: resp.status as ConsentResponse['status'],
+  }
+}
+
+// ── Trigger data fetch ────────────────────────────────────────────────────────
+
+export async function triggerDataFetch(consentId: string): Promise<DataSession> {
+  const resp = await setuPost<{ id: string; status: string }>(
+    `/consents/${consentId}/fetch`
   )
-  return {
-    status: result.status as 'PENDING' | 'READY' | 'REJECTED' | 'REVOKED' | 'EXPIRED',
-    consentId: result.consentId,
-  }
+  return { id: resp.id, status: resp.status as DataSession['status'] }
 }
 
-// ── Create data session (after consent approved) ──────────────────────────────
+// ── Get fetched data ──────────────────────────────────────────────────────────
 
-export async function createDataSession(
-  consentId: string,
-  fiTypes: FIType[],
-  dataRange: { from: string; to: string }
-): Promise<DataSessionResponse> {
-  const txnId = randomUUID()
+export async function getFetchedData(consentId: string): Promise<FIData[]> {
+  const sessions = await setuGet<{ sessions: Array<{ id: string; status: string }> }>(
+    `/v2/consents/${consentId}/data-sessions`
+  )
 
-  const result = await finvuPost<{ sessionId: string }>(
-    '/FinvuClient/fi/request',
-    {
-      ver: '2.0.0',
-      timestamp: new Date().toISOString(),
-      txnid: txnId,
-      FIDataRange: dataRange,
-      Consent: { id: consentId },
+  const results: FIData[] = []
+  for (const session of (sessions.sessions ?? [])) {
+    if (session.status === 'COMPLETED') {
+      try {
+        const data = await setuGet<{ data: FIData[] }>(`/data-sessions/${session.id}`)
+        results.push(...(data.data ?? []))
+      } catch {
+        // Session data may not be available — skip
+      }
     }
-  )
-
-  return { sessionId: result.sessionId, fiTypes }
+  }
+  return results
 }
 
-// ── Fetch financial data ──────────────────────────────────────────────────────
-
-export async function fetchFIData(sessionId: string): Promise<FIData[]> {
-  const result = await finvuPost<{ FI: Array<{ fipID: string; data: { encryptedFI: string[] } }> }>(
-    '/FinvuClient/fi/fetch',
-    { sessionId }
-  )
-
-  // In production, data is JWE-encrypted. Decrypt with FIU private key.
-  // For sandbox, data may be returned as plain JSON.
-  // This is a simplified mapping — production requires JWE decryption.
-  return (result.FI ?? []).map(fip => ({
-    fipId: fip.fipID,
-    fiType: 'DEPOSIT' as FIType,   // determined from actual decrypted data
-    data: (fip.data?.encryptedFI ?? []).map(s => ({ raw: s })),
-  }))
-}
-
-// ── Map AA data to Vaultly asset format ───────────────────────────────────────
+// ── Map Setu data to Vaultly assets ──────────────────────────────────────────
 
 export interface MappedAsset {
   name: string
@@ -259,29 +231,60 @@ export interface MappedAsset {
   currency: string
   institution: string
   notes: string
-  source: 'aa'
 }
 
-export function mapDepositToAsset(account: Record<string, unknown>): MappedAsset {
-  return {
-    name: `${account.bankName ?? account.maskedAccountNumber ?? 'Bank Account'}`,
-    category: account.accountType === 'FIXED_DEPOSIT' ? 'fd' : 'bank_account',
-    value: Number(account.currentBalance ?? 0),
-    currency: 'INR',
-    institution: String(account.bankName ?? ''),
-    notes: `Linked via Account Aggregator · ${account.maskedAccountNumber ?? ''}`,
-    source: 'aa',
-  }
-}
-
-export function mapMutualFundToAsset(fund: Record<string, unknown>): MappedAsset {
-  return {
-    name: String(fund.schemeName ?? fund.folioNo ?? 'Mutual Fund'),
-    category: String(fund.schemeCategory ?? '').includes('ELSS') ? 'elss' : 'sip',
-    value: Number(fund.currentValue ?? 0),
-    currency: 'INR',
-    institution: String(fund.amc ?? ''),
-    notes: `Folio: ${fund.folioNo ?? 'N/A'} · Linked via Account Aggregator`,
-    source: 'aa',
+export function mapAccountToAsset(account: Record<string, unknown>, fiType: FIType): MappedAsset | null {
+  switch (fiType) {
+    case 'DEPOSIT': {
+      const balance = Number(account.currentBalance ?? account.balance ?? 0)
+      if (!balance) return null
+      return {
+        name: String(account.bankName ?? account.institution ?? account.maskedAccountNumber ?? 'Bank Account'),
+        category: account.accountType === 'TERM_DEPOSIT' ? 'fd' : 'bank_account',
+        value: balance,
+        currency: String(account.currency ?? 'INR'),
+        institution: String(account.bankName ?? account.fipName ?? ''),
+        notes: `Acc: ${account.maskedAccountNumber ?? 'N/A'} · via Setu AA`,
+      }
+    }
+    case 'MUTUAL_FUNDS':
+    case 'SIP': {
+      const value = Number(account.currentValue ?? account.portfolioValue ?? 0)
+      if (!value) return null
+      return {
+        name: String(account.schemeName ?? account.fundName ?? account.folioNo ?? 'Mutual Fund'),
+        category: String(account.schemeCategory ?? '').toLowerCase().includes('elss') ? 'elss' : 'sip',
+        value,
+        currency: 'INR',
+        institution: String(account.amc ?? account.fundHouse ?? ''),
+        notes: `Folio: ${account.folioNo ?? 'N/A'} · via Setu AA`,
+      }
+    }
+    case 'EQUITIES': {
+      const value = Number(account.portfolioValue ?? account.currentValue ?? 0)
+      if (!value) return null
+      return {
+        name: String(account.dpName ?? account.institution ?? 'Demat Portfolio'),
+        category: 'investment',
+        value,
+        currency: 'INR',
+        institution: String(account.dpName ?? account.broker ?? ''),
+        notes: `via Setu AA`,
+      }
+    }
+    case 'NPS': {
+      const value = Number(account.totalValue ?? account.netAssetValue ?? 0)
+      if (!value) return null
+      return {
+        name: `NPS - ${account.pran ?? 'Account'}`,
+        category: 'nps',
+        value,
+        currency: 'INR',
+        institution: String(account.npsBank ?? account.fundManager ?? 'PFRDA'),
+        notes: `PRAN: ${account.pran ?? 'N/A'} · via Setu AA`,
+      }
+    }
+    default:
+      return null
   }
 }
