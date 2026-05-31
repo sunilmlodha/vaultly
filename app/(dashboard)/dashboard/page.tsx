@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { redirect } from 'next/navigation'
 import { Topbar } from '@/components/layout/topbar'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { NetWorthChart } from '@/components/dashboard/net-worth-chart'
@@ -19,12 +20,20 @@ import type { Asset, Liability, Renewal, Goal } from '@/lib/types'
 
 export default async function DashboardPage() {
   const session = await auth()
+  if (!session?.user) redirect('/login')
+
   // householdId may not be in older JWTs — fall back to DB lookup
-  const sessionHid = (session?.user as Record<string, unknown>)?.householdId as string | undefined
-  const hid = sessionHid ?? (await db.execute({
-    sql: 'SELECT household_id FROM users WHERE id = ?',
-    args: [session!.user.id],
-  })).rows[0]?.household_id as string
+  const sessionHid = (session.user as Record<string, unknown>)?.householdId as string | undefined
+  const dbHid = sessionHid
+    ? null
+    : ((await db.execute({
+        sql: 'SELECT household_id FROM users WHERE id = ?',
+        args: [session.user.id],
+      }).catch(() => ({ rows: [] }))).rows[0]?.household_id as string | undefined)
+  const hid: string = (sessionHid ?? dbHid ?? '') as string
+
+  // If no household found, redirect to setup
+  if (!hid) redirect('/login')
 
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
