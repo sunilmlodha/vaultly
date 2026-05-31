@@ -9,10 +9,15 @@ import {
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
+import { APP_NAMES, BRAND_COLOURS, getRegion } from '@/lib/config/regions'
 
 export function Sidebar() {
   const pathname = usePathname()
   const t = useTranslations('nav')
+  const region = getRegion()
+  const appName = APP_NAMES[region]
+  const primaryColour = BRAND_COLOURS[region].primary
+  const isIndia = region === 'india'
 
   const nav = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -43,10 +48,16 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-slate-100">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center">
-            <Vault size={16} className="text-white" />
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: primaryColour }}
+          >
+            {isIndia
+              ? <span className="text-white text-sm font-black">त</span>
+              : <Vault size={16} className="text-white" />
+            }
           </div>
-          <span className="text-lg font-bold text-slate-800">Vaultly</span>
+          <span className="text-lg font-bold text-slate-800">{appName}</span>
         </Link>
       </div>
 

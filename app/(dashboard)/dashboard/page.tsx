@@ -19,7 +19,12 @@ import type { Asset, Liability, Renewal, Goal } from '@/lib/types'
 
 export default async function DashboardPage() {
   const session = await auth()
-  const hid = session!.user.householdId
+  // householdId may not be in older JWTs — fall back to DB lookup
+  const sessionHid = (session?.user as Record<string, unknown>)?.householdId as string | undefined
+  const hid = sessionHid ?? (await db.execute({
+    sql: 'SELECT household_id FROM users WHERE id = ?',
+    args: [session!.user.id],
+  })).rows[0]?.household_id as string
 
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 

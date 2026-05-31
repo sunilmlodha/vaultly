@@ -1,3 +1,4 @@
+import { getRegion, APP_NAMES, APP_TAGLINES, BRAND_COLOURS } from '@/lib/config/regions'
 import Link from 'next/link'
 import {
   Vault, Shield, Users, Search, TrendingUp, RefreshCw, ArrowRight,
@@ -150,6 +151,15 @@ const faqs = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
+  const region = getRegion()
+  const isIndia = region === 'india'
+  const appName = APP_NAMES[region]
+  const tagline = APP_TAGLINES[region]
+  const primaryColour = BRAND_COLOURS[region].primary
+  const primaryStyle = { backgroundColor: primaryColour }
+  const primaryClass = isIndia ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-500 hover:bg-indigo-600'
+  const shadowClass = isIndia ? 'shadow-orange-200' : 'shadow-indigo-200'
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
 
@@ -157,10 +167,13 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center shadow-md shadow-indigo-200">
-              <Vault size={16} className="text-white" />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={primaryStyle}>
+              {isIndia
+                ? <span className="text-white text-sm font-black">त</span>
+                : <Vault size={16} className="text-white" />
+              }
             </div>
-            <span className="text-lg font-bold text-slate-800">Vaultly</span>
+            <span className="text-lg font-bold text-slate-800">{appName}</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
@@ -172,8 +185,8 @@ export default function LandingPage() {
             <Link href="/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors px-3 py-2">
               Sign in
             </Link>
-            <Link href="/signup" className="inline-flex items-center gap-1.5 bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-600 transition-colors shadow-sm">
-              Get started free <ArrowRight size={13} />
+            <Link href="/signup" className={`inline-flex items-center gap-1.5 ${primaryClass} text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm`}>
+              {isIndia ? 'Tijori Kholein' : 'Get started free'} <ArrowRight size={13} />
             </Link>
           </div>
         </div>
@@ -186,18 +199,23 @@ export default function LandingPage() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6">
-          Your complete wealth<br />
-          <span className="text-indigo-500">picture in one vault</span>
+          {isIndia ? (
+            <>Apni Tijori.<br /><span style={{ color: primaryColour }}>Your family&apos;s financial safe.</span></>
+          ) : (
+            <>Your complete wealth<br /><span className="text-indigo-500">picture in one vault</span></>
+          )}
         </h1>
 
         <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-8 leading-relaxed">
-          Track every asset, liability, pension and subscription. Connect your bank. Let AI score your
-          financial health and write your monthly wealth story. Free to start.
+          {isIndia
+            ? 'Track EPF, SIPs, property, gold and bank accounts. Let AI recover forgotten pension pots and score your financial health in Hindi or English.'
+            : 'Track every asset, liability, pension and subscription. Connect your bank. Let AI score your financial health and write your monthly wealth story. Free to start.'
+          }
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-          <Link href="/signup" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-500 text-white font-bold px-8 py-4 rounded-2xl hover:bg-indigo-600 transition-all shadow-xl shadow-indigo-200 text-base">
-            Open your vault free <ArrowRight size={16} />
+          <Link href="/signup" className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 ${primaryClass} text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-xl ${shadowClass} text-base`}>
+            {isIndia ? 'Apni Tijori Kholein' : 'Open your vault free'} <ArrowRight size={16} />
           </Link>
           <Link href="/login" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-slate-800 transition-all text-base">
             Sign in
@@ -304,7 +322,7 @@ export default function LandingPage() {
             Everything your wealth needs
           </h2>
           <p className="text-slate-500 max-w-xl mx-auto">
-            From live bank balances to AI-written stories — Vaultly connects every part of your financial life.
+            From live bank balances to AI-written stories — {appName} connects every part of your financial life.
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -338,7 +356,7 @@ export default function LandingPage() {
               Finance that keeps you coming back
             </h2>
             <p className="text-indigo-200 max-w-xl mx-auto">
-              Most finance apps are passive. Vaultly is designed like a game — so you actually use it every day.
+              Most finance apps are passive. {appName} is designed like a game — so you actually use it every day.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -429,7 +447,7 @@ export default function LandingPage() {
           <Smartphone size={11} /> Coming soon
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
-          Vaultly in your pocket
+          {appName} in your pocket
         </h2>
         <p className="text-slate-500 max-w-xl mx-auto mb-8">
           Native iOS and Android apps coming soon. Push notifications for renewals, streak alerts,
@@ -490,7 +508,7 @@ export default function LandingPage() {
           <Link href="/signup" className="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold px-8 py-4 rounded-2xl hover:bg-indigo-50 transition-all text-base shadow-xl shadow-indigo-800/30">
             Open your free vault <ArrowRight size={16} />
           </Link>
-          <p className="text-indigo-300 text-xs mt-4">Join thousands of UK families already using Vaultly</p>
+          <p className="text-indigo-300 text-xs mt-4">Join thousands already using {appName}</p>
         </div>
       </section>
 
@@ -535,7 +553,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs">© 2026 Vaultly. All rights reserved.</p>
+            <p className="text-xs">© 2026 {appName}. All rights reserved.</p>
             <p className="text-xs">
               Open Banking powered by{' '}
               <span className="text-slate-300 font-medium">TrueLayer</span>
