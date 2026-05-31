@@ -1,13 +1,15 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import { Topbar } from '@/components/layout/topbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle, Lock, ExternalLink, Info, ChevronRight, Shield, Building2 } from 'lucide-react'
+import { CheckCircle, Lock, ExternalLink, Info, ChevronRight, Shield, AlertCircle } from 'lucide-react'
+import { Suspense } from 'react'
 
 // Account Aggregator (AA) connection page for India
-// Powered by RBI's Account Aggregator framework
-// FIU registration with Finvu/Anumati pending — UI ready
+// Implements Finvu AA API (ReBIT AA 2.0 spec)
+// Sandbox: FINVU_CLIENT_ID + FINVU_CLIENT_SECRET env vars required for live
 
 const AA_SOURCES = [
   {
@@ -79,9 +81,52 @@ const HOW_IT_WORKS = [
   },
 ]
 
-export default function AAConnectionPage() {
+const FI_TYPE_OPTIONS = [
+  { id: 'DEPOSIT', label: 'Bank Accounts & FDs', emoji: '🏦' },
+  { id: 'MUTUAL_FUNDS', label: 'Mutual Funds', emoji: '📈' },
+  { id: 'INSURANCE', label: 'Insurance Policies', emoji: '🔐' },
+  { id: 'NPS', label: 'NPS Pension', emoji: '🏛️' },
+  { id: 'EQUITIES', label: 'Stocks & Demat', emoji: '📊' },
+]
+
+function AAConnectionContent() {
   const { data: session } = useSession()
-  const [showWhy, setShowWhy] = useState(false)
+  const searchParams = useSearchParams()
+  const [connecting, setConnecting] = useState(false)
+  const [error, setError] = useState('')
+  const [selectedTypes, setSelectedTypes] = useState(['DEPOSIT', 'MUTUAL_FUNDS'])
+
+  const successAssets = searchParams.get('assets')
+  const errorParam = searchParams.get('error')
+  const demoSuccess = searchParams.get('demo') === 'success'
+
+  const toggleType = (id: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    )
+  }
+
+  const handleConnect = async () => {
+    setConnecting(true)
+    setError('')
+    try {
+      const res = await fetch('/api/india/aa/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fiTypes: selectedTypes }),
+      })
+      const data = await res.json()
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl
+      } else {
+        setError(data.error ?? 'Failed to initiate connection')
+      }
+    } catch {
+      setError('Connection failed. Please try again.')
+    } finally {
+      setConnecting(false)
+    }
+  }
 
   return (
     <div>
@@ -120,20 +165,83 @@ export default function AAConnectionPage() {
           </div>
         </div>
 
-        {/* Registration notice */}
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="py-4 flex items-start gap-3">
-            <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-800">FIU registration in progress</p>
-              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                We're registering as a Financial Information User (FIU) with RBI via Finvu.
-                Live connections will be available once approved. Register your interest below.
+        {/* Success state */}
+        {(successAssets || demoSuccess) && (
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="py-4 flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">
+                  {demoSuccess ? 'Demo connection successful!' : `${successAssets} assets imported from Account Aggregator!`}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  Your financial data has been added to your vault. <a href="/assets" className="font-bold underline">View assets →</a>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Error state */}
+        {errorParam && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="py-4 flex items-center gap-3">
+              <AlertCircle size={18} className="text-red-600 shrink-0" />
+              <p className="text-sm text-red-700">
+                {errorParam === 'rejected' ? 'You declined the consent request. You can try again any time.'
+                : errorParam === 'fetch_failed' ? 'Could not fetch your financial data. Please try again.'
+                : 'Connection failed. Please try again.'}
               </p>
-              <button className="mt-2 text-xs font-semibold text-amber-700 underline hover:text-amber-900">
-                Notify me when AA is live →
-              </button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Select data types + Connect button */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield size={16} className="text-orange-500" /> What data would you like to connect?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {FI_TYPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => toggleType(opt.id)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all text-left ${
+                    selectedTypes.includes(opt.id)
+                      ? 'bg-orange-50 border-orange-300 text-orange-700'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-orange-200'
+                  }`}
+                >
+                  <span className="text-base">{opt.emoji}</span>
+                  <span>{opt.label}</span>
+                  {selectedTypes.includes(opt.id) && (
+                    <CheckCircle size={12} className="ml-auto text-orange-500 shrink-0" />
+                  )}
+                </button>
+              ))}
             </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <button
+              onClick={handleConnect}
+              disabled={connecting || selectedTypes.length === 0}
+              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-2xl transition-all"
+            >
+              {connecting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  Opening Finvu consent…
+                </span>
+              ) : (
+                'Connect via Finvu Account Aggregator'
+              )}
+            </button>
+            <p className="text-[10px] text-slate-400 text-center">
+              You will be redirected to Finvu to authenticate with your bank directly.
+              Tijori never sees your banking passwords.
+            </p>
           </CardContent>
         </Card>
 
@@ -198,31 +306,15 @@ export default function AAConnectionPage() {
           ))}
         </div>
 
-        {/* CTA */}
-        <Card className="bg-slate-900 border-0">
-          <CardContent className="py-6 text-center">
-            <p className="text-white font-bold mb-2">Coming soon</p>
-            <p className="text-slate-400 text-sm mb-4">
-              Live AA connections launching Q3 2026. Add assets manually for now.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a
-                href="/assets"
-                className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
-              >
-                Add assets manually <ChevronRight size={14} />
-              </a>
-              <a
-                href="https://www.rbi.org.in/scripts/PublicationsView.aspx?id=20136"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-colors"
-              >
-                Learn about AA <ExternalLink size={13} />
-              </a>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Learn more */}
+        <div className="flex gap-3 justify-center">
+          <a href="/assets" className="text-sm text-slate-500 hover:text-slate-700 underline">
+            Add assets manually instead
+          </a>
+          <a href="https://www.rbi.org.in/scripts/PublicationsView.aspx?id=20136" target="_blank" rel="noopener noreferrer" className="text-sm text-orange-500 hover:text-orange-700 flex items-center gap-1">
+            RBI AA policy <ExternalLink size={12} />
+          </a>
+        </div>
 
         {/* Comparison vs UK Open Banking */}
         <Card>
@@ -265,5 +357,13 @@ export default function AAConnectionPage() {
 
       </div>
     </div>
+  )
+}
+
+export default function AAConnectionPage() {
+  return (
+    <Suspense>
+      <AAConnectionContent />
+    </Suspense>
   )
 }
