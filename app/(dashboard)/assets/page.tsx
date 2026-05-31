@@ -15,6 +15,8 @@ import type { Asset } from '@/lib/types'
 import { useTranslations } from 'next-intl'
 import { FORMAT_LABELS } from '@/lib/csv-parser'
 
+const isIndia = process.env.NEXT_PUBLIC_REGION === 'india'
+
 // ── Category filter tabs ──────────────────────────────────────────────────────
 const FILTER_TABS = [
   { key: 'all',    label: 'All',         emoji: '✨' },
@@ -26,11 +28,11 @@ const FILTER_TABS = [
 ]
 
 const TAB_CATEGORIES: Record<string, string[]> = {
-  bank:     ['bank_account', 'isa_cash', 'livret_a'],
-  invest:   ['investment', 'isa_ss', 'isa_lifetime', 'isa_junior', 'etf', 'bonds', 'pea', 'assurance_vie'],
+  bank:     ['bank_account', 'isa_cash', 'livret_a', 'fd', 'rd'],
+  invest:   ['investment', 'isa_ss', 'isa_lifetime', 'isa_junior', 'etf', 'bonds', 'pea', 'assurance_vie', 'sip', 'elss', 'ppf', 'sgb', 'nsc'],
   property: ['property'],
   crypto:   ['crypto'],
-  pension:  ['pension', 'sipp', 'riester'],
+  pension:  ['pension', 'sipp', 'riester', 'epf', 'nps'],
 }
 
 function filterAssets(assets: Asset[], tab: string): Asset[] {
@@ -53,7 +55,7 @@ function EmptyState({ onAdd, onConnect }: { onAdd: () => void; onConnect: () => 
           onClick={onConnect}
           className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-indigo-200 text-indigo-600 text-sm font-semibold rounded-2xl hover:bg-indigo-50 transition-all"
         >
-          <Landmark size={16} /> Connect bank account
+          <Landmark size={16} /> {isIndia ? "Connect via AA" : "Connect bank account"}
         </button>
         <button
           onClick={onAdd}
@@ -216,7 +218,13 @@ export default function AssetsPage() {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const [activeTab, setActiveTab] = useState('all')
 
+  const isIndia = process.env.NEXT_PUBLIC_REGION === 'india'
+
   const connectBank = async () => {
+    if (isIndia) {
+      window.location.href = '/connections/aa'
+      return
+    }
     const res = await fetch('/api/connections/auth')
     const { url } = await res.json()
     window.location.href = url
@@ -251,7 +259,7 @@ export default function AssetsPage() {
               onClick={connectBank}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
             >
-              <Landmark size={13} /> Connect bank
+              <Landmark size={13} /> {isIndia ? "Connect AA" : "Connect bank"}
             </button>
             <button
               onClick={() => setImportOpen(true)}
@@ -347,7 +355,7 @@ export default function AssetsPage() {
             {/* Mobile action buttons */}
             <div className="sm:hidden flex flex-col gap-2 pt-2">
               <button onClick={connectBank} className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-2xl">
-                <Landmark size={15} /> Connect bank account
+                <Landmark size={15} /> {isIndia ? "Connect via Account Aggregator" : "Connect bank account"}
               </button>
               <button onClick={() => setImportOpen(true)} className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-2xl">
                 <Upload size={15} /> Import from CSV

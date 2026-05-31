@@ -156,8 +156,12 @@ export function BankForm({ data, onChange }: { data: Partial<AssetFormData>; onC
 
 // ── Investment form ───────────────────────────────────────────────────────────
 
-const PLATFORMS = ['Hargreaves Lansdown', 'Vanguard', 'Fidelity', 'AJ Bell', 'Interactive Brokers', 'Trading 212', 'Freetrade', 'eToro']
-const INV_TYPES = [
+const isIndia = process.env.NEXT_PUBLIC_REGION === 'india'
+
+const UK_PLATFORMS = ['Hargreaves Lansdown', 'Vanguard', 'Fidelity', 'AJ Bell', 'Interactive Brokers', 'Trading 212', 'Freetrade', 'eToro']
+const INDIA_PLATFORMS = ['Zerodha', 'Groww', 'INDmoney', 'Paytm Money', 'ICICI Direct', 'HDFC Securities', 'Kuvera', 'ET Money']
+
+const UK_INV_TYPES = [
   { value: 'investment', label: 'Stocks & Shares' },
   { value: 'isa_ss', label: 'Stocks & Shares ISA' },
   { value: 'isa_lifetime', label: 'Lifetime ISA' },
@@ -165,14 +169,30 @@ const INV_TYPES = [
   { value: 'bonds', label: 'Bonds' },
 ]
 
+const INDIA_INV_TYPES = [
+  { value: 'sip', label: 'SIP / Mutual Fund' },
+  { value: 'elss', label: 'ELSS (Tax Saving)' },
+  { value: 'ppf', label: 'PPF' },
+  { value: 'fd', label: 'Fixed Deposit' },
+  { value: 'rd', label: 'Recurring Deposit' },
+  { value: 'sgb', label: 'Sovereign Gold Bond' },
+  { value: 'nsc', label: 'NSC / Post Office' },
+  { value: 'investment', label: 'Stocks / Demat' },
+  { value: 'etf', label: 'ETF / Index Fund' },
+]
+
 export function InvestmentForm({ data, onChange }: { data: Partial<AssetFormData>; onChange: (d: Partial<AssetFormData>) => void }) {
+  const invTypes = isIndia ? INDIA_INV_TYPES : UK_INV_TYPES
+  const platforms = isIndia ? INDIA_PLATFORMS : UK_PLATFORMS
+  const currency = isIndia ? 'INR' : 'GBP'
+
   return (
     <div className="space-y-4">
-      <Field label="Investment type">
+      <Field label={isIndia ? 'Investment type' : 'Investment type'}>
         <div className="flex flex-wrap gap-2">
-          {INV_TYPES.map(t => (
+          {invTypes.map(t => (
             <button
-              key={t.value}
+              key={t.value + t.label}
               onClick={() => onChange({ category: t.value })}
               className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
                 data.category === t.value ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
@@ -184,9 +204,9 @@ export function InvestmentForm({ data, onChange }: { data: Partial<AssetFormData
         </div>
       </Field>
 
-      <Field label="Platform or broker" hint="Where are your investments held?">
+      <Field label={isIndia ? 'Platform / AMC' : 'Platform or broker'} hint={isIndia ? 'Where are your investments held?' : 'Where are your investments held?'}>
         <div className="grid grid-cols-4 gap-1.5 mb-2">
-          {PLATFORMS.map(p => (
+          {platforms.map(p => (
             <button
               key={p}
               onClick={() => onChange({ institution: p })}
@@ -200,13 +220,19 @@ export function InvestmentForm({ data, onChange }: { data: Partial<AssetFormData
         </div>
       </Field>
 
-      <Field label="Holding name" hint="e.g. 'Vanguard FTSE All-World ETF' or 'Apple Inc'">
-        <TextInput placeholder="Fund, stock or account name" value={data.name || ''} onChange={v => onChange({ name: v })} />
+      <Field label="Holding name" hint={isIndia ? 'e.g. HDFC Midcap Opportunities Fund, Reliance Industries' : "e.g. 'Vanguard FTSE All-World ETF' or 'Apple Inc'"}>
+        <TextInput
+          placeholder={isIndia ? 'Fund name, stock or scheme' : 'Fund, stock or account name'}
+          value={data.name || ''}
+          onChange={v => onChange({ name: v })}
+        />
       </Field>
 
       <Field label="Current value">
-        <CurrencyInput value={data.value ? String(data.value) : ''} onChange={v => onChange({ value: parseFloat(v) || 0 })} />
-        <p className="text-[11px] text-slate-400 mt-1">Check your platform for the latest value</p>
+        <CurrencyInput value={data.value ? String(data.value) : ''} onChange={v => onChange({ value: parseFloat(v) || 0 })} currency={currency} />
+        <p className="text-[11px] text-slate-400 mt-1">
+          {isIndia ? 'Check your broker app or last statement for the current value' : 'Check your platform for the latest value'}
+        </p>
       </Field>
     </div>
   )
@@ -482,31 +508,45 @@ export function PropertyForm({ data, onChange }: { data: Partial<AssetFormData>;
 
 // ── Pension form ──────────────────────────────────────────────────────────────
 
-const PENSION_PROVIDERS = [
+const UK_PENSION_PROVIDERS = [
   { name: 'Nest', emoji: '🔵' }, { name: 'Aviva', emoji: '🟡' },
   { name: 'Legal & General', emoji: '🟢' }, { name: 'Standard Life', emoji: '🔴' },
   { name: 'Scottish Widows', emoji: '⚫' }, { name: 'Royal London', emoji: '🟣' },
   { name: 'Aegon', emoji: '🔵' }, { name: 'Prudential', emoji: '🔴' },
 ]
+const INDIA_PENSION_PROVIDERS = [
+  { name: 'EPFO', emoji: '🇮🇳' }, { name: 'NPS/PFRDA', emoji: '🏛️' },
+  { name: 'LIC', emoji: '🟠' }, { name: 'SBI Pension', emoji: '🔵' },
+  { name: 'HDFC Life', emoji: '🔴' }, { name: 'ICICI Pru', emoji: '🟠' },
+  { name: 'Bajaj Allianz', emoji: '🔵' }, { name: 'Kotak', emoji: '🔴' },
+]
 
-const PENSION_TYPES = [
+const UK_PENSION_TYPES = [
   { value: 'pension', label: 'Workplace' },
   { value: 'sipp', label: 'SIPP' },
   { value: 'pension', label: 'Personal' },
 ]
+const INDIA_PENSION_TYPES = [
+  { value: 'epf', label: 'EPF' },
+  { value: 'nps', label: 'NPS' },
+  { value: 'ppf', label: 'PPF' },
+  { value: 'pension', label: 'Insurance Pension' },
+]
 
 export function PensionForm({ data, onChange }: { data: Partial<AssetFormData>; onChange: (d: Partial<AssetFormData>) => void }) {
   const [showOther, setShowOther] = useState(false)
+  const pensionTypes = isIndia ? INDIA_PENSION_TYPES : UK_PENSION_TYPES
+  const pensionProviders = isIndia ? INDIA_PENSION_PROVIDERS : UK_PENSION_PROVIDERS
 
   return (
     <div className="space-y-4">
-      <Field label="Pension type">
-        <div className="flex gap-2">
-          {PENSION_TYPES.map(t => (
+      <Field label={isIndia ? 'Pension / savings type' : 'Pension type'}>
+        <div className="flex flex-wrap gap-2">
+          {pensionTypes.map(t => (
             <button
               key={t.label}
               onClick={() => onChange({ category: t.value })}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                 data.category === t.value ? 'bg-violet-500 text-white border-violet-500' : 'bg-white border-slate-200 text-slate-600 hover:border-violet-300'
               }`}
             >
@@ -514,11 +554,16 @@ export function PensionForm({ data, onChange }: { data: Partial<AssetFormData>; 
             </button>
           ))}
         </div>
+        {isIndia && (
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            EPF = Employee Provident Fund · NPS = National Pension System · PPF = Public Provident Fund
+          </p>
+        )}
       </Field>
 
       <Field label="Provider">
         <div className="grid grid-cols-4 gap-1.5 mb-2">
-          {PENSION_PROVIDERS.map(p => (
+          {pensionProviders.map(p => (
             <button
               key={p.name}
               onClick={() => onChange({ institution: p.name, name: data.name || `${p.name} Pension` })}
