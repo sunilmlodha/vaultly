@@ -1,7 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { stressLabel } from '@/lib/enterprise/wellness'
+
+// Inlined — avoids importing server-only lib/enterprise/wellness.ts from a client component
+function stressLabel(score: number) {
+  if (score <= 1) return { label: 'Very calm',     emoji: '😌', colour: 'text-emerald-600' }
+  if (score <= 2) return { label: 'Manageable',    emoji: '🙂', colour: 'text-green-500'   }
+  if (score <= 3) return { label: 'Some pressure', emoji: '😐', colour: 'text-amber-500'   }
+  if (score <= 4) return { label: 'Stressed',      emoji: '😟', colour: 'text-orange-500'  }
+  return               { label: 'Very stressed',   emoji: '😰', colour: 'text-red-500'     }
+}
 
 interface HistoryRow {
   week: string
