@@ -42,13 +42,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       sandbox: true,
       consentHandle: `sandbox-${consentRow.slice(0, 8)}`,
-      redirectUrl: `${baseUrl}/connections/aa?demo=true`,
-      message: 'Finvu credentials not configured. This is a sandbox simulation.',
-      setup: {
-        step1: 'Register at https://finvu.in/developer',
-        step2: 'Add FINVU_CLIENT_ID, FINVU_CLIENT_SECRET, FINVU_FIU_ID to Vercel env vars',
-        step3: 'Redeploy Tijori',
-      },
+      redirectUrl: `${baseUrl}/connections/aa?demo=success&fiTypes=${fiTypes.join(',')}`,
+      message: 'Finvu credentials not configured — showing demo flow.',
     })
   }
 

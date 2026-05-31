@@ -95,10 +95,12 @@ function AAConnectionContent() {
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState('')
   const [selectedTypes, setSelectedTypes] = useState(['DEPOSIT', 'MUTUAL_FUNDS'])
+  const [sandboxMode, setSandboxMode] = useState(false)
 
   const successAssets = searchParams.get('assets')
   const errorParam = searchParams.get('error')
   const demoSuccess = searchParams.get('demo') === 'success'
+  const demoFiTypes = searchParams.get('fiTypes')?.split(',') ?? []
 
   const toggleType = (id: string) => {
     setSelectedTypes(prev =>
@@ -109,6 +111,7 @@ function AAConnectionContent() {
   const handleConnect = async () => {
     setConnecting(true)
     setError('')
+    setSandboxMode(false)
     try {
       const res = await fetch('/api/india/aa/consent', {
         method: 'POST',
@@ -116,6 +119,12 @@ function AAConnectionContent() {
         body: JSON.stringify({ fiTypes: selectedTypes }),
       })
       const data = await res.json()
+      if (data.sandbox) {
+        // No real credentials — show setup instructions
+        setSandboxMode(true)
+        setConnecting(false)
+        return
+      }
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl
       } else {
@@ -165,17 +174,66 @@ function AAConnectionContent() {
           </div>
         </div>
 
-        {/* Success state */}
-        {(successAssets || demoSuccess) && (
+        {/* Sandbox mode — credentials not configured */}
+        {sandboxMode && (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="py-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <Info size={18} className="text-orange-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-orange-800">Finvu credentials not configured</p>
+                  <p className="text-xs text-orange-700 mt-1 leading-relaxed">
+                    To enable live Account Aggregator connections, register with Finvu and add your credentials to the Tijori Vercel project.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-orange-200 p-4 space-y-2 text-xs">
+                <p className="font-semibold text-slate-700">Setup steps:</p>
+                <div className="space-y-1.5 text-slate-600">
+                  <p>1. Email <span className="font-mono bg-slate-100 px-1 rounded">partnerships@finvu.in</span> to register as FIU</p>
+                  <p>2. Get your <span className="font-mono bg-slate-100 px-1 rounded">clientId</span>, <span className="font-mono bg-slate-100 px-1 rounded">clientSecret</span>, <span className="font-mono bg-slate-100 px-1 rounded">fiuId</span></p>
+                  <p>3. Add to Vercel Tijori project environment variables:</p>
+                  <div className="bg-slate-900 rounded-lg p-3 font-mono text-emerald-400 text-[11px] leading-relaxed">
+                    FINVU_CLIENT_ID=your_client_id<br/>
+                    FINVU_CLIENT_SECRET=your_secret<br/>
+                    FINVU_FIU_ID=your_fiu_id<br/>
+                    FINVU_BASE_URL=https://webvwdev.finvu.in
+                  </div>
+                  <p>4. Redeploy Tijori → AA connections go live automatically</p>
+                </div>
+              </div>
+              <p className="text-[11px] text-orange-600">
+                Sandbox available immediately after registration. Production FIU approval takes 3-6 months via RBI.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Demo success state */}
+        {demoSuccess && (
           <Card className="border-emerald-200 bg-emerald-50">
             <CardContent className="py-4 flex items-center gap-3">
               <CheckCircle size={20} className="text-emerald-600 shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-emerald-800">
-                  {demoSuccess ? 'Demo connection successful!' : `${successAssets} assets imported from Account Aggregator!`}
-                </p>
+                <p className="text-sm font-semibold text-emerald-800">Demo: consent flow completed!</p>
                 <p className="text-xs text-emerald-600 mt-0.5">
-                  Your financial data has been added to your vault. <a href="/assets" className="font-bold underline">View assets →</a>
+                  Selected: {demoFiTypes.length > 0 ? demoFiTypes.join(', ') : 'Bank + MF'}.
+                  With live Finvu credentials, your financial data would now be imported automatically.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Real success state */}
+        {successAssets && (
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="py-4 flex items-center gap-3">
+              <CheckCircle size={20} className="text-emerald-600 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">{successAssets} assets imported!</p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  Your financial data is now in your vault. <a href="/assets" className="font-bold underline">View assets →</a>
                 </p>
               </div>
             </CardContent>
