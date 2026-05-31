@@ -39,10 +39,10 @@ export default function SettingsPage() {
   useEffect(() => {
     // Pre-fill currency from localStorage immediately (no flash)
     if (typeof window !== 'undefined') {
-      const savedCurrency = localStorage.getItem('vaultly_currency') || 'GBP'
+      const savedCurrency = localStorage.getItem('hale_currency') || 'GBP'
       setProfile(p => ({ ...p, currency: savedCurrency }))
-      setPinSet(!!localStorage.getItem('vaultly_pin_hash'))
-      setLanguage(localStorage.getItem('vaultly_lang') || 'en')
+      setPinSet(!!localStorage.getItem('hale_pin_hash'))
+      setLanguage(localStorage.getItem('hale_lang') || 'en')
     }
     // Then sync from DB (source of truth)
     fetch('/api/account').then(r => r.json()).then(({ account }) => {
@@ -50,7 +50,7 @@ export default function SettingsPage() {
         setProfile({ full_name: account.full_name, email: account.email, currency: account.currency, created_at: account.created_at })
         // Keep localStorage in sync with DB
         if (typeof window !== 'undefined') {
-          localStorage.setItem('vaultly_currency', account.currency)
+          localStorage.setItem('hale_currency', account.currency)
         }
       }
     })
@@ -65,7 +65,7 @@ export default function SettingsPage() {
     })
     // Write to localStorage — this is what formatCurrency() reads on every page
     // so ALL pages immediately use the new currency without needing a page reload.
-    localStorage.setItem('vaultly_currency', profile.currency)
+    localStorage.setItem('hale_currency', profile.currency)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -73,7 +73,7 @@ export default function SettingsPage() {
 
   const selectLanguage = (code: string) => {
     setLanguage(code)
-    localStorage.setItem('vaultly_lang', code)
+    localStorage.setItem('hale_lang', code)
     // Reload to apply locale
     window.location.reload()
   }

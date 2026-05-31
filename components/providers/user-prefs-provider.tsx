@@ -29,7 +29,7 @@ export function UserPrefsProvider({ children }: { children: React.ReactNode }) {
 
   const load = useCallback(async () => {
     const locale = (typeof window !== 'undefined'
-      ? localStorage.getItem('vaultly_lang') || 'en'
+      ? localStorage.getItem('hale_lang') || 'en'
       : 'en')
 
     try {

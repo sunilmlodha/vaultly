@@ -5,8 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Vault, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Activity, Mail, Lock, AlertCircle } from 'lucide-react'
 import { Suspense } from 'react'
+import { APP_NAMES, APP_TAGLINES, BRAND_COLOURS, getRegion } from '@/lib/config/regions'
+
+const region = getRegion()
+const APP_NAME = APP_NAMES[region]
+const APP_TAGLINE = APP_TAGLINES[region]
+const PRIMARY = BRAND_COLOURS[region].primary
+const IS_INDIA = region === 'india'
 
 const OAUTH_PROVIDERS = [
   {
@@ -92,15 +99,22 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-slate-50 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${IS_INDIA ? 'bg-gradient-to-br from-orange-50 to-amber-50' : 'bg-gradient-to-br from-emerald-50 to-slate-50'}`}>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-500 mb-4 shadow-lg shadow-indigo-200">
-            <Vault size={24} className="text-white" />
+          <div
+            className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4 shadow-lg"
+            style={{ backgroundColor: PRIMARY, boxShadow: `0 10px 25px -5px ${PRIMARY}40` }}
+          >
+            {IS_INDIA
+              ? <span className="text-white text-xl font-black">त</span>
+              : <Activity size={22} className="text-white" />
+            }
           </div>
           <h1 className="text-2xl font-bold text-slate-800">Welcome back</h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in to your Vaultly account</p>
+          <p className="text-slate-500 text-sm mt-1">Sign in to your {APP_NAME} account</p>
+          <p className="text-xs mt-0.5" style={{ color: PRIMARY }}>{APP_TAGLINE}</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-7 border border-slate-100 space-y-5">

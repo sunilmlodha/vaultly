@@ -59,22 +59,27 @@ export const REGION_LABELS: Record<Region, string> = {
 };
 
 export const APP_NAMES: Record<Region, string> = {
-  uk: 'Vaultly',
+  uk: 'Hale',
   india: 'Tijori',
 };
 
 export const APP_TAGLINES: Record<Region, string> = {
-  uk: 'Your complete wealth picture',
+  uk: 'Be financially hale.',
   india: "Apni Tijori. Your family's financial safe.",
+};
+
+export const APP_SUBTITLES: Record<Region, string> = {
+  uk: 'Your complete financial health — tracked, scored and growing.',
+  india: 'EPF, SIPs, property and bank accounts — all in one Tijori.',
 };
 
 export const BRAND_COLOURS: Record<Region, { primary: string; secondary: string }> = {
   uk: {
-    primary: '#6366f1',
-    secondary: '#8b5cf6',
+    primary: '#059669',   // emerald-600 — health, vitality, growth
+    secondary: '#0d9488', // teal-600 — trust, calm
   },
   india: {
-    primary: '#f97316',
-    secondary: '#dc2626',
+    primary: '#f97316',   // orange-500 — saffron, India
+    secondary: '#dc2626', // red-600
   },
 };
