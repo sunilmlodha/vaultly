@@ -8,20 +8,14 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const isIndia = process.env.NEXT_PUBLIC_REGION === 'india'
-
 export const metadata: Metadata = {
-  title: isIndia
-    ? "Tijori — Your Family's Financial Safe"
-    : "Hale — Be Financially Hale",
-  description: isIndia
-    ? "Track EPF, SIPs, property and bank accounts. AI-powered financial wellness for India."
-    : "Your complete financial health — tracked, scored and growing. Open Banking, AI insights, family finances.",
+  title: "Vaultly — Family Wealth Management",
+  description: "Track assets, liabilities, renewals and recover dormant pensions with AI.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: isIndia ? "Tijori" : "Hale",
+    title: "Vaultly",
   },
   other: {
     "mobile-web-app-capable": "yes",

@@ -37,7 +37,7 @@ function remortgageAlert(fixedRateEndDate: string | null | undefined): { urgent:
 
 function getDefaultCurrency() {
   if (typeof window === 'undefined') return 'GBP'
-  return localStorage.getItem('hale_currency') || 'GBP'
+  return localStorage.getItem('vaultly_currency') || 'GBP'
 }
 
 export default function LiabilitiesPage() {

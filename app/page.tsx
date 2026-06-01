@@ -1,7 +1,7 @@
 import { getRegion, APP_NAMES, APP_TAGLINES, BRAND_COLOURS } from '@/lib/config/regions'
 import Link from 'next/link'
 import {
-  Activity, Shield, Users, Search, TrendingUp, RefreshCw, ArrowRight,
+  Vault, Shield, Users, Search, TrendingUp, RefreshCw, ArrowRight,
   CheckCircle, Smartphone, Star, Zap, Trophy, Bitcoin, Home, Building2,
   BarChart3, FileText, Bell, ChevronRight,
 } from 'lucide-react'
@@ -143,7 +143,7 @@ const faqs = [
     a: 'Never. Your financial data is encrypted, stored in a private database and never sold or shared with third parties. You can export or delete all your data at any time.',
   },
   {
-    q: 'Is Hale available on iPhone and Android?',
+    q: 'Is Vaultly available on iPhone and Android?',
     a: 'The iOS and Android apps are coming soon to the App Store and Google Play. Sign up now to get early access.',
   },
 ]
@@ -157,8 +157,8 @@ export default function LandingPage() {
   const tagline = APP_TAGLINES[region]
   const primaryColour = BRAND_COLOURS[region].primary
   const primaryStyle = { backgroundColor: primaryColour }
-  const primaryClass = isIndia ? 'bg-orange-500 hover:bg-orange-600' : 'bg-emerald-600 hover:bg-emerald-700'
-  const shadowClass = isIndia ? 'shadow-orange-200' : 'shadow-emerald-200'
+  const primaryClass = isIndia ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-500 hover:bg-indigo-600'
+  const shadowClass = isIndia ? 'shadow-orange-200' : 'shadow-indigo-200'
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -170,7 +170,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md" style={primaryStyle}>
               {isIndia
                 ? <span className="text-white text-sm font-black">त</span>
-                : <Activity size={16} className="text-white" />
+                : <Vault size={16} className="text-white" />
               }
             </div>
             <span className="text-lg font-bold text-slate-800">{appName}</span>
@@ -194,7 +194,7 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
+        <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
           <Zap size={11} /> Now with AI Wealth Narrative &amp; Vault Score
         </div>
 
@@ -379,7 +379,7 @@ export default function LandingPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {[
-            { n: '01', title: 'Create your Hale', desc: 'Sign up with Google, email or Microsoft. No credit card needed. Takes 30 seconds.' },
+            { n: '01', title: 'Create your vault', desc: 'Sign up with Google, email or Microsoft. No credit card needed. Takes 30 seconds.' },
             { n: '02', title: 'Connect your bank', desc: 'Link via Open Banking (TrueLayer). We get live balances — you keep all credentials.' },
             { n: '03', title: 'See your picture', desc: 'Vault Score, AI story, net worth trend, renewals calendar. Your whole wealth in one view.' },
           ].map(step => (
@@ -429,7 +429,7 @@ export default function LandingPage() {
                   href="/signup"
                   className={`text-center text-sm font-bold py-3 rounded-xl transition-all ${
                     plan.highlight
-                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
+                      ? 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-lg shadow-indigo-200'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
@@ -497,7 +497,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="bg-emerald-700 py-20 text-center">
+      <section className="bg-indigo-600 py-20 text-center">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
             Start building your wealth picture today
@@ -505,7 +505,7 @@ export default function LandingPage() {
           <p className="text-indigo-200 mb-8 text-lg">
             Free forever. No credit card. Up in 5 minutes.
           </p>
-          <Link href="/signup" className="inline-flex items-center gap-2 bg-white text-emerald-700 font-bold px-8 py-4 rounded-2xl hover:bg-emerald-50 transition-all text-base shadow-xl shadow-emerald-800/30">
+          <Link href="/signup" className="inline-flex items-center gap-2 bg-white text-indigo-600 font-bold px-8 py-4 rounded-2xl hover:bg-indigo-50 transition-all text-base shadow-xl shadow-indigo-800/30">
             Open your free vault <ArrowRight size={16} />
           </Link>
           <p className="text-indigo-300 text-xs mt-4">Join thousands already using {appName}</p>
@@ -518,8 +518,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center">
-                  <Activity size={13} className="text-white" />
+                <div className="w-7 h-7 rounded-xl bg-indigo-500 flex items-center justify-center">
+                  <Vault size={13} className="text-white" />
                 </div>
                 <span className="text-sm font-bold text-white">Vaultly</span>
               </div>

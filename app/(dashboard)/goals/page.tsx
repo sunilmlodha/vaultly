@@ -25,7 +25,7 @@ const blank = { name: '', category: 'savings', target_amount: '', current_amount
 
 function getDefaultCurrency() {
   if (typeof window === 'undefined') return 'GBP'
-  return localStorage.getItem('hale_currency') || 'GBP'
+  return localStorage.getItem('vaultly_currency') || 'GBP'
 }
 
 export default function GoalsPage() {

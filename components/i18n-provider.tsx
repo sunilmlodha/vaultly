@@ -34,7 +34,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Record<string, unknown>>(enMessages as Record<string, unknown>)
 
   useEffect(() => {
-    const stored = (localStorage.getItem('hale_lang') || 'en') as Locale
+    const stored = (localStorage.getItem('vaultly_lang') || 'en') as Locale
     if (stored === 'en' || !LOCALE_LOADERS[stored]) {
       // Already English — no state change needed (avoid unnecessary re-render)
       return
